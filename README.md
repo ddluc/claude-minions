@@ -25,7 +25,6 @@ Create a `.env` file in the project root:
 
 ```bash
 cat > .env <<EOF
-ANTHROPIC_API_KEY=your_api_key_here
 GITHUB_TOKEN=your_github_token_here  # Optional, for PR creation
 EOF
 ```
