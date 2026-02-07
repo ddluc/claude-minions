@@ -1,7 +1,8 @@
 function App() {
   return (
     <div>
-      <h1>Hello World</h1>
+      <h1>Welcome to Claude Minions</h1>
+      <p>Your AI-powered task execution system</p>
     </div>
   )
 }
