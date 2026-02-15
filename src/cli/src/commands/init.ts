@@ -29,10 +29,10 @@ export async function init(): Promise<void> {
   // Create .minions/ directory structure and CLAUDE.md templates
   const roles = Object.keys(settings.roles) as AgentRole[];
   for (const role of roles) {
-    fs.ensureDirSync(path.join(minionsDir, role, 'tasks'));
+    fs.ensureDirSync(path.join(minionsDir, role));
     fs.writeFileSync(
       path.join(minionsDir, role, 'CLAUDE.md'),
-      buildClaudeMd(role, settings.roles[role] || {}, cwd)
+      buildClaudeMd(role, settings.roles[role] || {}, cwd, settings.repos)
     );
   }
   console.log(chalk.green(`  Created .minions/ directories for: ${roles.join(', ')}`));
@@ -67,8 +67,7 @@ export async function init(): Promise<void> {
   console.log(chalk.bold.green('\nWorkspace initialized!'));
   console.log(chalk.dim('Next steps:'));
   console.log(chalk.dim('  1. Add your GITHUB_TOKEN to .env'));
-  console.log(chalk.dim('  2. Run `minions server` to start the server'));
-  console.log(chalk.dim('  3. Run `minions start <role>` to start an agent'));
+  console.log(chalk.dim('  2. Run `minions start <role>` to start an agent'));
 }
 
 async function promptForSettings(): Promise<Settings> {

@@ -3,7 +3,7 @@ import { VALID_ROLES } from '../../../core/constants.js';
 
 export const RepoSchema = z.object({
   name: z.string(),
-  url: z.string().url(),
+  url: z.string(),
   path: z.string(),
 });
 

@@ -26,8 +26,8 @@ dist-ssr
 .env
 
 # Minions workspace data
-.minions/*/tasks/*
-!.minions/*/tasks/.gitkeep
-.minions/**/.git/
-.minions/**/node_modules/
-*.pid
+.minions
+minions.json
+
+# Minions
+.minions/

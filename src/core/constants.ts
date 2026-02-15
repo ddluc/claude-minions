@@ -11,3 +11,11 @@ export const REPO_ACCESS: Record<string, string[]> = {
   'be-engineer': ['backend'],
   'qa': ['all'],
 };
+
+export const ROLE_LABEL_COLORS: Record<string, string> = {
+  'pm': 'D4C5F9',
+  'cao': 'F9D0C4',
+  'fe-engineer': 'BFD4F2',
+  'be-engineer': 'B4E197',
+  'qa': 'FEF2C0',
+};

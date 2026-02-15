@@ -2,7 +2,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { DEFAULT_PORT } from '../../../core/constants.js';
-import type { AgentRole, RoleConfig } from '../../../core/types.js';
+import type { AgentRole, RoleConfig, Repo } from '../../../core/types.js';
+import { parseGitUrl } from './git.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
@@ -25,10 +26,26 @@ export function loadRoleTemplate(role: AgentRole): string {
   return fs.readFileSync(path.join(TEMPLATES_DIR, `${role}.md`), 'utf-8');
 }
 
-export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string): string {
+export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = []): string {
   const base = loadRoleTemplate(role);
-  let projectInstructions = '';
+  let content = base;
 
+  // Inject repository context so agents know owner/repo for gh commands
+  if (repos.length > 0) {
+    const repoLines = repos.map(r => {
+      try {
+        const { owner, repo } = parseGitUrl(r.url);
+        return `- **${r.name}**: \`${owner}/${repo}\` (path: \`${r.path}/\`)`;
+      } catch {
+        return `- **${r.name}**: \`${r.url}\` (path: \`${r.path}/\`)`;
+      }
+    }).join('\n');
+
+    content += `\n## Repository Context\n\nYour accessible repositories:\n${repoLines}\n\nUse \`-R owner/repo\` with \`gh\` commands to target specific repos.\n`;
+  }
+
+  // Append project-specific instructions
+  let projectInstructions = '';
   if (config.systemPromptFile) {
     const filePath = path.resolve(workspaceRoot, config.systemPromptFile);
     projectInstructions = fs.readFileSync(filePath, 'utf-8');
@@ -37,7 +54,8 @@ export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot
   }
 
   if (projectInstructions) {
-    return base + '\n' + projectInstructions + '\n';
+    content += '\n' + projectInstructions + '\n';
   }
-  return base;
+
+  return content;
 }
