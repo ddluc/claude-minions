@@ -35,7 +35,7 @@ export async function start(role: string): Promise<void> {
   let sshKeyPath: string | undefined;
   if (settings.ssh) {
     const sourceSshKey = path.resolve(workspaceRoot, settings.ssh);
-    const localSshKey = path.join(roleDir, '.ssh_key');
+    const localSshKey = path.join(roleDir, 'ssh_key');
     fs.copyFileSync(sourceSshKey, localSshKey);
     fs.chmodSync(localSshKey, 0o600);
     sshKeyPath = localSshKey;
@@ -102,7 +102,7 @@ export async function start(role: string): Promise<void> {
   // Regenerate CLAUDE.md so template changes take effect
   fs.writeFileSync(
     path.join(roleDir, 'CLAUDE.md'),
-    buildClaudeMd(agentRole, settings.roles[agentRole] || {}, workspaceRoot, repos),
+    buildClaudeMd(agentRole, settings.roles[agentRole] || {}, workspaceRoot, repos, !!sshKeyPath),
   );
 
   // Write PID file for status tracking

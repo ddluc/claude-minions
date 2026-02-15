@@ -26,9 +26,14 @@ export function loadRoleTemplate(role: AgentRole): string {
   return fs.readFileSync(path.join(TEMPLATES_DIR, `${role}.md`), 'utf-8');
 }
 
-export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = []): string {
+export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false): string {
   const base = loadRoleTemplate(role);
   let content = base;
+
+  // Inject SSH authentication info if SSH key is configured
+  if (hasSshKey) {
+    content += `\n## SSH Authentication\n\nAn SSH key is available at \`ssh_key\` in your working directory. Each repository has been pre-configured with \`git config core.sshCommand\` to use this key automatically.\n\n**You do NOT need to manually configure SSH** - all git operations within repository directories will authenticate automatically.\n\n`;
+  }
 
   // Inject repository context so agents know owner/repo for gh commands
   if (repos.length > 0) {
