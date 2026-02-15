@@ -24,3 +24,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Minions workspace data
+.minions/*/tasks/*
+!.minions/*/tasks/.gitkeep
+.minions/**/.git/
+.minions/**/node_modules/
+*.pid

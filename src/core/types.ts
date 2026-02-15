@@ -1,0 +1,26 @@
+// Pure TypeScript types - no dependencies
+
+export interface Repo {
+  name: string;
+  url: string;
+  path: string;
+  testCommand?: string;
+  devCommand?: string;
+  port?: number;
+}
+
+export interface Settings {
+  mode: 'ask' | 'yolo';
+  repos: Repo[];
+}
+
+export type AgentRole = 'pm' | 'cao' | 'fe-engineer' | 'be-engineer' | 'qa';
+
+export type AgentStatus = 'online' | 'offline' | 'working';
+
+export interface AgentState {
+  role: AgentRole;
+  status: AgentStatus;
+  connectedAt?: string;
+  currentBranch?: string;
+}
