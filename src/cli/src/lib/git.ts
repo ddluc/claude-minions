@@ -22,13 +22,36 @@ export function parseGitUrl(url: string): { owner: string; repo: string } {
 
 /**
  * Clone a repo into targetDir if it doesn't already exist.
+ * Optionally configures an SSH key for authentication.
  */
-export async function cloneRepo(url: string, targetDir: string): Promise<boolean> {
+export async function cloneRepo(url: string, targetDir: string, sshKeyPath?: string): Promise<boolean> {
   if (fs.existsSync(targetDir) && fs.existsSync(`${targetDir}/.git`)) {
     return false;
   }
-  await execa('git', ['clone', url, targetDir], { stdio: 'inherit' });
+  const env = sshKeyPath
+    ? { ...process.env, GIT_SSH_COMMAND: `ssh -i ${sshKeyPath} -o IdentitiesOnly=yes` }
+    : undefined;
+  await execa('git', ['clone', url, targetDir], { stdio: 'inherit', env });
   return true;
+}
+
+/**
+ * Configure SSH key and checkout a target branch for a cloned repo.
+ */
+export async function configureRepo(repoDir: string, sshKeyPath?: string, targetBranch = 'dev'): Promise<void> {
+  // Persist SSH key config in the repo so future git operations use it
+  if (sshKeyPath) {
+    await execa('git', ['config', 'core.sshCommand', `ssh -i ${sshKeyPath} -o IdentitiesOnly=yes`], { cwd: repoDir });
+  }
+
+  // Checkout target branch if it exists and we're not already on it
+  const { stdout: currentBranch } = await execa('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: repoDir });
+  if (currentBranch.trim() !== targetBranch) {
+    const { stdout: branches } = await execa('git', ['branch', '-r'], { cwd: repoDir });
+    if (branches.includes(`origin/${targetBranch}`)) {
+      await execa('git', ['checkout', '-b', targetBranch, `origin/${targetBranch}`], { cwd: repoDir });
+    }
+  }
 }
 
 /**
