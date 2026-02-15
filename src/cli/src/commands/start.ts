@@ -31,10 +31,16 @@ export async function start(role: string): Promise<void> {
   const roleDir = path.join(workspaceRoot, '.minions', role);
   fs.ensureDirSync(roleDir);
 
-  // Resolve SSH key path if configured
-  const sshKeyPath = settings.ssh
-    ? path.resolve(workspaceRoot, settings.ssh)
-    : undefined;
+  // Copy SSH key into the role directory so the minion has local access
+  let sshKeyPath: string | undefined;
+  if (settings.ssh) {
+    const sourceSshKey = path.resolve(workspaceRoot, settings.ssh);
+    const localSshKey = path.join(roleDir, '.ssh_key');
+    fs.copyFileSync(sourceSshKey, localSshKey);
+    fs.chmodSync(localSshKey, 0o600);
+    sshKeyPath = localSshKey;
+    console.log(chalk.dim(`Copied SSH key into .minions/${role}/`));
+  }
 
   // Determine repos for this role (PM gets none, everyone else gets all)
   const repos = agentRole === 'pm' ? [] : settings.repos;
