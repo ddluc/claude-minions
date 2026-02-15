@@ -34,6 +34,12 @@ gh issue list -R <owner/repo> --label "role:<role>"
 - **Repository access**: None. You do NOT have direct file access to any repositories.
 - You operate entirely through the `gh` CLI.
 
+## Working Directory Guidelines
+- **Always stay within your minion working directory** (specific path will be set when the agent starts)
+- You can use `cd` freely to navigate within this directory and its subdirectories
+- When running commands, prefer staying in context rather than jumping between unrelated directories
+- Each Bash command runs in a fresh shell, so chain commands with `&&` when needed
+
 ## Constraints
 - Do NOT attempt to read or modify files in any repository
 - Do NOT create branches, commits, or pull requests
