@@ -4,9 +4,6 @@ export interface Repo {
   name: string;
   url: string;
   path: string;
-  testCommand?: string;
-  devCommand?: string;
-  port?: number;
 }
 
 export interface Settings {

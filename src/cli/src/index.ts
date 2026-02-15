@@ -1,9 +1,9 @@
 import { Command } from 'commander';
-import { initCommand } from './commands/init.js';
-import { serverCommand } from './commands/server.js';
-import { startCommand } from './commands/start.js';
-import { stopCommand } from './commands/stop.js';
-import { statusCommand } from './commands/status.js';
+import { init } from './commands/init.js';
+import { server } from './commands/server.js';
+import { start } from './commands/start.js';
+import { stop } from './commands/stop.js';
+import { status } from './commands/status.js';
 import { VALID_ROLES } from '../../core/constants.js';
 
 const program = new Command();
@@ -16,26 +16,26 @@ program
 program
   .command('init')
   .description('Initialize a new minions workspace')
-  .action(initCommand);
+  .action(init);
 
 program
   .command('server')
   .description('Start the minions server')
-  .action(serverCommand);
+  .action(server);
 
 program
   .command('start <role>')
   .description(`Start an agent with the given role (${VALID_ROLES.join(', ')})`)
-  .action(startCommand);
+  .action(start);
 
 program
   .command('stop <role>')
   .description('Stop a running agent by role')
-  .action(stopCommand);
+  .action(stop);
 
 program
   .command('status')
   .description('Show status of all agents')
-  .action(statusCommand);
+  .action(status);
 
 program.parse();
