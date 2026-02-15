@@ -9,6 +9,7 @@ export interface Repo {
 export interface Settings {
   mode: 'ask' | 'yolo';
   repos: Repo[];
+  roles: AgentRole[];
 }
 
 export type AgentRole = 'pm' | 'cao' | 'fe-engineer' | 'be-engineer' | 'qa';

@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { VALID_ROLES } from '../../../core/constants.js';
 import type { Repo, Settings } from '../../../core/types.js';
-import { generateConnectMd } from '../lib/templates.js';
+import { generateConnectMd, generateClaudeMd } from '../lib/templates.js';
 
 export async function init(): Promise<void> {
   const cwd = process.cwd();
@@ -66,16 +66,39 @@ export async function init(): Promise<void> {
     addMore = another;
   }
 
+  // Prompt for team roles
+  const ROLE_DESCRIPTIONS: Record<string, string> = {
+    'pm':          'PM           - Monitors issues, tracks project status',
+    'cao':         'CAO          - Technical architect, task breakdown, delegation',
+    'fe-engineer': 'FE Engineer  - Implements UI/frontend features',
+    'be-engineer': 'BE Engineer  - Implements APIs, backend logic',
+    'qa':          'QA           - Verifies code changes, runs dev servers',
+  };
+
+  const { roles } = await inquirer.prompt([{
+    type: 'checkbox',
+    name: 'roles',
+    message: 'Select team roles:',
+    choices: VALID_ROLES.map(role => ({
+      name: ROLE_DESCRIPTIONS[role],
+      value: role,
+      checked: true,
+    })),
+    validate: (answer: string[]) => answer.length > 0 || 'You must select at least one role.',
+  }]);
+
   // Write minions.json
-  const settings: Settings = { mode, repos };
+  const settings: Settings = { mode, repos, roles };
   fs.writeJSONSync(configPath, settings, { spaces: 2 });
   console.log(chalk.green('\n  Created minions.json'));
 
-  // Create .minions/ directory structure
-  for (const role of VALID_ROLES) {
+  // Create .minions/ directory structure and CLAUDE.md templates
+  for (const role of roles) {
     fs.ensureDirSync(path.join(minionsDir, role, 'tasks'));
+    fs.writeFileSync(path.join(minionsDir, role, 'CLAUDE.md'), generateClaudeMd(role));
   }
-  console.log(chalk.green('  Created .minions/ agent directories'));
+  console.log(chalk.green(`  Created .minions/ directories for: ${roles.join(', ')}`));
+  console.log(chalk.green('  Created CLAUDE.md templates for each role'));
 
   // Create connect.md
   fs.writeFileSync(path.join(minionsDir, 'connect.md'), generateConnectMd());
