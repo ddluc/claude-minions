@@ -3,38 +3,83 @@ import inquirer from 'inquirer';
 import fs from 'fs-extra';
 import path from 'path';
 import { VALID_ROLES } from '../../../core/constants.js';
-import type { Repo, Settings } from '../../../core/types.js';
-import { generateConnectMd, generateClaudeMd } from '../lib/templates.js';
+import type { AgentRole, Repo, RoleConfig, Settings } from '../../../core/types.js';
+import { loadSettings } from '../lib/config.js';
+import { generateConnectMd, buildClaudeMd } from '../lib/templates.js';
 
 export async function init(): Promise<void> {
   const cwd = process.cwd();
   const configPath = path.join(cwd, 'minions.json');
   const minionsDir = path.join(cwd, '.minions');
 
-  // Check if already initialized
+  let settings: Settings;
+
   if (fs.existsSync(configPath)) {
-    const { overwrite } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'overwrite',
-      message: 'minions.json already exists. Overwrite?',
-      default: false,
-    }]);
-    if (!overwrite) {
-      console.log(chalk.yellow('Init cancelled.'));
-      return;
-    }
+    // Config exists — use it
+    console.log(chalk.dim('Found existing minions.json, setting up workspace from config...\n'));
+    settings = loadSettings(cwd);
+  } else {
+    // No config — run interactive setup
+    console.log(chalk.bold('\nClaude Minions - Workspace Setup\n'));
+    settings = await promptForSettings();
+    fs.writeJSONSync(configPath, settings, { spaces: 2 });
+    console.log(chalk.green('\n  Created minions.json'));
   }
 
-  console.log(chalk.bold('\nClaude Minions - Workspace Setup\n'));
+  // Create .minions/ directory structure and CLAUDE.md templates
+  const roles = Object.keys(settings.roles) as AgentRole[];
+  for (const role of roles) {
+    fs.ensureDirSync(path.join(minionsDir, role, 'tasks'));
+    fs.writeFileSync(
+      path.join(minionsDir, role, 'CLAUDE.md'),
+      buildClaudeMd(role, settings.roles[role] || {}, cwd)
+    );
+  }
+  console.log(chalk.green(`  Created .minions/ directories for: ${roles.join(', ')}`));
+  console.log(chalk.green('  Created CLAUDE.md templates for each role'));
 
+  // Create connect.md
+  fs.writeFileSync(path.join(minionsDir, 'connect.md'), generateConnectMd());
+  console.log(chalk.green('  Created .minions/connect.md'));
+
+  // Create .env template if it doesn't exist
+  const envPath = path.join(cwd, '.env');
+  if (!fs.existsSync(envPath)) {
+    fs.writeFileSync(envPath, 'GITHUB_TOKEN=\n');
+    console.log(chalk.green('  Created .env template'));
+  }
+
+  // Add .minions/ to .gitignore
+  const gitignorePath = path.join(cwd, '.gitignore');
+  const gitignoreEntries = ['.minions/', '.env', '*.log'];
+  if (fs.existsSync(gitignorePath)) {
+    const existing = fs.readFileSync(gitignorePath, 'utf-8');
+    const toAdd = gitignoreEntries.filter(e => !existing.includes(e));
+    if (toAdd.length > 0) {
+      fs.appendFileSync(gitignorePath, '\n# Minions\n' + toAdd.join('\n') + '\n');
+      console.log(chalk.green('  Updated .gitignore'));
+    }
+  } else {
+    fs.writeFileSync(gitignorePath, '# Minions\n' + gitignoreEntries.join('\n') + '\n');
+    console.log(chalk.green('  Created .gitignore'));
+  }
+
+  console.log(chalk.bold.green('\nWorkspace initialized!'));
+  console.log(chalk.dim('Next steps:'));
+  console.log(chalk.dim('  1. Add your GITHUB_TOKEN to .env'));
+  console.log(chalk.dim('  2. Run `minions server` to start the server'));
+  console.log(chalk.dim('  3. Run `minions start <role>` to start an agent'));
+}
+
+async function promptForSettings(): Promise<Settings> {
   // Prompt for mode
   const { mode } = await inquirer.prompt([{
     type: 'list',
     name: 'mode',
     message: 'Agent permission mode:',
     choices: [
-      { name: 'ask  - Agents prompt before tool use (recommended for local dev)', value: 'ask' },
-      { name: 'yolo - Agents auto-approve all actions (for EC2/autonomous)', value: 'yolo' },
+      { name: 'Ask  - Agents prompt before tool use (recommended for local dev)', value: 'ask' },
+      { name: 'YOLO - Agents auto-approve all actions (for EC2/autonomous)', value: 'yolo' },
     ],
   }]);
 
@@ -75,9 +120,9 @@ export async function init(): Promise<void> {
     'qa':          'QA           - Verifies code changes, runs dev servers',
   };
 
-  const { roles } = await inquirer.prompt([{
+  const { selectedRoles } = await inquirer.prompt([{
     type: 'checkbox',
-    name: 'roles',
+    name: 'selectedRoles',
     message: 'Select team roles:',
     choices: VALID_ROLES.map(role => ({
       name: ROLE_DESCRIPTIONS[role],
@@ -87,48 +132,11 @@ export async function init(): Promise<void> {
     validate: (answer: string[]) => answer.length > 0 || 'You must select at least one role.',
   }]);
 
-  // Write minions.json
-  const settings: Settings = { mode, repos, roles };
-  fs.writeJSONSync(configPath, settings, { spaces: 2 });
-  console.log(chalk.green('\n  Created minions.json'));
-
-  // Create .minions/ directory structure and CLAUDE.md templates
-  for (const role of roles) {
-    fs.ensureDirSync(path.join(minionsDir, role, 'tasks'));
-    fs.writeFileSync(path.join(minionsDir, role, 'CLAUDE.md'), generateClaudeMd(role));
-  }
-  console.log(chalk.green(`  Created .minions/ directories for: ${roles.join(', ')}`));
-  console.log(chalk.green('  Created CLAUDE.md templates for each role'));
-
-  // Create connect.md
-  fs.writeFileSync(path.join(minionsDir, 'connect.md'), generateConnectMd());
-  console.log(chalk.green('  Created .minions/connect.md'));
-
-  // Create .env template if it doesn't exist
-  const envPath = path.join(cwd, '.env');
-  if (!fs.existsSync(envPath)) {
-    fs.writeFileSync(envPath, 'GITHUB_TOKEN=\n');
-    console.log(chalk.green('  Created .env template'));
+  // Build roles config object
+  const roles: Partial<Record<AgentRole, RoleConfig>> = {};
+  for (const role of selectedRoles) {
+    roles[role as AgentRole] = {};
   }
 
-  // Add .minions/ to .gitignore
-  const gitignorePath = path.join(cwd, '.gitignore');
-  const gitignoreEntries = ['.minions/', '.env', '*.log'];
-  if (fs.existsSync(gitignorePath)) {
-    const existing = fs.readFileSync(gitignorePath, 'utf-8');
-    const toAdd = gitignoreEntries.filter(e => !existing.includes(e));
-    if (toAdd.length > 0) {
-      fs.appendFileSync(gitignorePath, '\n# Minions\n' + toAdd.join('\n') + '\n');
-      console.log(chalk.green('  Updated .gitignore'));
-    }
-  } else {
-    fs.writeFileSync(gitignorePath, '# Minions\n' + gitignoreEntries.join('\n') + '\n');
-    console.log(chalk.green('  Created .gitignore'));
-  }
-
-  console.log(chalk.bold.green('\nWorkspace initialized!'));
-  console.log(chalk.dim('Next steps:'));
-  console.log(chalk.dim('  1. Add your GITHUB_TOKEN to .env'));
-  console.log(chalk.dim('  2. Run `minions server` to start the server'));
-  console.log(chalk.dim('  3. Run `minions start <role>` to start an agent'));
+  return { mode, repos, roles };
 }

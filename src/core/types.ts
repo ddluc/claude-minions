@@ -6,10 +6,15 @@ export interface Repo {
   path: string;
 }
 
+export interface RoleConfig {
+  systemPrompt?: string;
+  systemPromptFile?: string;
+}
+
 export interface Settings {
   mode: 'ask' | 'yolo';
   repos: Repo[];
-  roles: AgentRole[];
+  roles: Partial<Record<AgentRole, RoleConfig>>;
 }
 
 export type AgentRole = 'pm' | 'cao' | 'fe-engineer' | 'be-engineer' | 'qa';

@@ -57,3 +57,7 @@ Write task files in this format:
 - Do NOT implement features yourself -- delegate to engineers
 - Focus on architecture, planning, and coordination
 - Ensure tasks are small enough for a single PR each
+
+## Project-Specific Instructions
+
+<!-- Add project-specific instructions below, or configure systemPrompt/systemPromptFile in minions.json -->
