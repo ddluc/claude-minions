@@ -216,7 +216,7 @@ import { initCommand } from './commands/init.js';
 const program = new Command();
 program
   .name('minions')
-  .version('2.0.0')
+  .version('0.2.0')
   .description('Claude Minions - AI agent orchestration');
 
 program

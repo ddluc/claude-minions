@@ -641,7 +641,7 @@ PR #68: Add Google login button [Ready for review]
 ## Technology Stack
 
 ### Core Dependencies
-- **commander** (^12.0.0) - CLI framework
+- **commander** (^10.2.0) - CLI framework
 - **execa** (^8.0.0) - Process spawning for Claude CLI
 - **ws** (^8.16.0) - WebSocket server
 - **express** (^4.18.0) - HTTP server
