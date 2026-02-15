@@ -19,4 +19,5 @@ export const SettingsSchema = z.object({
   mode: z.enum(['ask', 'yolo']),
   repos: z.array(RepoSchema),
   roles: z.record(z.enum(VALID_ROLES), RoleConfigSchema).default({}),
+  ssh: z.string().optional(),
 });

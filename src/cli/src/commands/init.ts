@@ -137,5 +137,18 @@ async function promptForSettings(): Promise<Settings> {
     roles[role as AgentRole] = {};
   }
 
-  return { mode, repos, roles };
+  // Prompt for SSH key path (optional)
+  const { sshKeyPath } = await inquirer.prompt([{
+    type: 'input',
+    name: 'sshKeyPath',
+    message: 'SSH key path for git operations (optional):',
+    default: '',
+  }]);
+
+  return {
+    mode,
+    repos,
+    roles,
+    ...(sshKeyPath && { ssh: sshKeyPath }),
+  };
 }

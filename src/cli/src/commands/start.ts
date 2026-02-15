@@ -42,6 +42,14 @@ export async function start(role: string): Promise<void> {
       // Initialize git repository
       await execa('git', ['init'], { cwd: roleDir });
       await execa('git', ['remote', 'add', 'origin', mainRepo.url], { cwd: roleDir });
+
+      // Configure SSH key if provided
+      if (settings.ssh) {
+        const sshKeyPath = path.resolve(workspaceRoot, settings.ssh);
+        await execa('git', ['config', 'core.sshCommand', `ssh -i ${sshKeyPath} -o IdentitiesOnly=yes`], { cwd: roleDir });
+        console.log(chalk.dim(`  Configured SSH key: ${settings.ssh}`));
+      }
+
       await execa('git', ['fetch', 'origin'], { cwd: roleDir });
 
       // Check out dev branch if it exists, otherwise use default branch

@@ -15,6 +15,7 @@ export interface Settings {
   mode: 'ask' | 'yolo';
   repos: Repo[];
   roles: Partial<Record<AgentRole, RoleConfig>>;
+  ssh?: string;
 }
 
 export type AgentRole = 'pm' | 'cao' | 'fe-engineer' | 'be-engineer' | 'qa';
