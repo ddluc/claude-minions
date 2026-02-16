@@ -24,3 +24,11 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Minions workspace data
+.minions
+minions.json
+
+# Minions
+.minions/
+minion_key

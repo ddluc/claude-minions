@@ -1,0 +1,25 @@
+{
+  "name": "claude-minions",
+  "version": "0.2.0",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "src/cli",
+    "src/server",
+    "src/ui"
+  ],
+  "scripts": {
+    "minions": "tsx bin/minions.ts",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck:cli": "npm run typecheck -w @minions/cli",
+    "typecheck:server": "npm run typecheck -w @minions/server",
+    "build:ui": "npm run build -w @minions/ui",
+    "dev:ui": "npm run dev -w @minions/ui"
+  },
+  "bin": {
+    "minions": "./bin/minions.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}

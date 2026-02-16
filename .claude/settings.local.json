@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm run typecheck:cli:*)"
+    ]
+  }
+}

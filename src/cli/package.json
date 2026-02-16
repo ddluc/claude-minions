@@ -1,0 +1,26 @@
+{
+  "name": "@minions/cli",
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "chokidar": "^3.5.0",
+    "commander": "^10.0.0",
+    "execa": "^8.0.0",
+    "fs-extra": "^11.0.0",
+    "inquirer": "^9.0.0",
+    "uuid": "^9.0.0",
+    "ws": "^8.16.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.0",
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.0.0",
+    "typescript": "^5.6.2"
+  }
+}

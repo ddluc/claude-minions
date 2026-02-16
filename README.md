@@ -1,398 +1,263 @@
-# Claude Minions - Multi-Agent Development Framework
+# Claude Minions
 
-A framework for orchestrating multiple Claude agents working in isolated Docker containers. The **CAO (Chief Agent Officer)** creates tasks that **CE (Claude Engineer)** agents execute independently.
+> Multi-agent AI development workflow with intelligent git orchestration
 
-## Overview
-
-- **CAO (Chief Agent Officer)**: You, using Claude Code with `CLAUDE.md` for context, creating and managing tasks
-- **CE (Claude Engineer)**: Claude instances in Docker containers using `instructions.md` for context, implementing tasks
-
-## Prerequisites
-
-Before you start, ensure you have:
-
-- **Docker Desktop** - [Install here](https://www.docker.com/products/docker-desktop/)
-- **Git** - Should be pre-installed
-- **Anthropic API Key** - [Get one here](https://console.anthropic.com/)
-- **GitHub Personal Access Token** (optional, for PR creation) - [Create one](https://github.com/settings/tokens)
-  - Required scopes: `repo`, `read:org`
-
-## Quick Start
-
-### 1. Set Up Environment
-
-Create a `.env` file in the project root:
-
-```bash
-cat > .env <<EOF
-GITHUB_TOKEN=your_github_token_here  # Optional, for PR creation
-EOF
-```
-
-### 2. Customize for Your Project
-
-Edit the following files to match your project:
-
-- **`CLAUDE.md`** - Context for CAO (you), includes task generation guidelines
-- **`.minions/instructions.md`** - Context for CE agents (mirrors CLAUDE.md content)
-
-Fill in the placeholder sections marked with `[ENTER...]` or `[ADD...]`.
-
-### 3. Create Your First Minion
-
-```bash
-# Create a new CE minion
-make @minion/create NAME=test-minion
-
-# Follow prompts to:
-# 1. Add SSH key to GitHub
-# 2. Optionally add GitHub token for PR creation
-```
-
-### 4. Run the Minion
-
-```bash
-# Attach to the minion container
-make @minion/run NAME=test-minion
-
-# Inside the container, start Claude CLI
-make @minion/start
-
-# Tell Claude to implement your task:
-# "Please read and implement the task in .minions/tasks/your-task.md"
-```
-
-## Directory Structure
-
-```
-.
-├── CLAUDE.md                   # CAO context (your instructions)
-├── README.md                   # This file
-├── Makefile                    # Agent management commands
-├── .env                        # API keys (gitignored)
-├── .gitignore                  # Ignore patterns
-├── src/                        # Your application code
-├── tasks/                      # Task files (optional location)
-└── .minions/                   # CE infrastructure
-    ├── Dockerfile              # CE minion container image
-    ├── instructions.md         # CE context (copied to claude.md in container)
-    ├── scripts/
-    │   ├── create-minion.sh    # Creates and configures new CE minion
-    │   ├── run-minion.sh       # Attaches to running CE minion
-    │   └── start-minion.sh     # Starts Claude CLI with optimal settings
-    └── tasks/                  # Task files for CE minions
-        └── .gitkeep
-```
-
-## Workflow
-
-### Step 1: CAO Creates Task File
-
-As CAO (using Claude Code), analyze feature requests and create task files following the format in `CLAUDE.md`:
-
-```bash
-# Task files typically go in .minions/tasks/
-# Example: .minions/tasks/add-user-authentication.md
-```
-
-### Step 2: Create CE Minion
-
-```bash
-# Create a named minion for the task
-make @minion/create NAME=add-auth
-
-# This will:
-# - Build Docker image with your codebase
-# - Create isolated container named minion-ce-add-auth
-# - Generate SSH keys for GitHub access
-# - Configure GitHub CLI (if token provided)
-# - Copy instructions.md to claude.md in container
-```
-
-### Step 3: CE Minion Executes Task
-
-```bash
-# Attach to the minion
-make @minion/run NAME=add-auth
-
-# Inside container: Start Claude CLI
-make @minion/start
-
-# Claude will:
-# - Load context from claude.md automatically
-# - Fetch latest from origin/master
-# - Wait for your instructions
-
-# Tell Claude to implement the task:
-# "Please read and implement the task in .minions/tasks/add-user-authentication.md"
-```
-
-The CE minion will:
-1. Read the task file
-2. Create a feature branch (`git checkout -b feature/add-auth`)
-3. Implement changes following the task specification
-4. Commit after each step
-5. Push branch to remote
-6. Create a pull request (if GitHub CLI is configured)
-
-### Step 4: Review & Merge
-
-```bash
-# Review the PR created by CE
-# Merge when approved
-# Repeat for next task
-```
-
-## Managing Minions
-
-### Create Minion
-```bash
-make @minion/create NAME=<minion-name>
-
-# Examples:
-make @minion/create NAME=worker-1
-make @minion/create NAME=feature-auth
-```
-
-### Attach to Running Minion
-```bash
-make @minion/run NAME=<minion-name>
-```
-
-### Start Claude CLI (Inside Container)
-```bash
-make @minion/start
-```
-
-### List Running Minions
-```bash
-docker ps --filter "name=minion-ce-"
-```
-
-### Stop Minion
-```bash
-docker stop minion-ce-<minion-name>
-```
-
-### Remove Minion
-```bash
-docker rm minion-ce-<minion-name>
-```
-
-### View Minion Logs
-```bash
-# View all logs
-docker logs minion-ce-<minion-name>
-
-# Follow logs in real-time
-docker logs -f minion-ce-<minion-name>
-```
-
-## Task File Format
-
-Task files should be placed in `.minions/tasks/` and follow this structure:
-
-```markdown
-# Task: [Brief Title]
-
-## Context
-[Architectural background - how this fits in your system]
-
-## Goal
-[What CE should accomplish]
-
-## Git Workflow
-1. Create and checkout new branch: `git checkout -b feature/[name]`
-2. Make changes as specified below
-3. Commit after each completed step with descriptive messages
-4. Push branch: `git push -u origin feature/[name]`
-5. Create pull request for review
-
-## Files to Modify
-- `/path/to/file.ts` - [Why/what changes]
-- `/path/to/another.ts` - [Why/what changes]
-
-## Architectural Guidance
-[Patterns to follow, base classes to extend, libraries to use]
-[Design system components, coding standards, etc.]
-
-## Implementation Steps
-1. [High-level step]
-2. [High-level step]
-3. [High-level step]
-
-## Method Signatures
-[Exact interfaces and method signatures to implement]
-
-```typescript
-// Example method signatures
-export function functionName(param: Type): ReturnType;
-```
-
-## Constraints
-[What NOT to change - base classes, shared utilities, etc.]
-
-## Success Criteria
-[Testable outcomes that define "done"]
-- [ ] Feature works as specified
-- [ ] Tests pass
-- [ ] No breaking changes
-- [ ] Code follows project standards
-
-## Dependencies
-[Other tasks that must complete first, if any]
-```
+Claude Minions orchestrates multiple specialized AI agents working together on your codebase. Each agent has a defined role - Product Manager, Chief Architect, Engineers, and QA - collaborating through GitHub to ship features faster and more reliably.
 
 ## Key Features
 
-### Isolation
-- Each CE minion runs in its own Docker container
-- Codebase is **copied** (not mounted) for true isolation
-- No interference between minions
-- Full YOLO permissions for CE minions
+### 🏢 Multi-Repository Orchestration
+Manage frontend, backend, mobile, and infrastructure repos as a unified workspace. Agents understand the relationships between your repositories and coordinate changes across them.
 
-### Single Minion Pattern
-- Only one CE minion runs at a time (simpler workflow)
-- Create new minions as needed for different tasks
-- Clean up old minions when done
+### 🔒 Isolated Agent Environments
+Each agent gets its own complete clone of your repositories with isolated working directories. No conflicts, no stepping on each other's toes. Engineers can work in parallel while QA validates independently.
 
-### Automatic Context Loading
-- `.minions/instructions.md` is copied to `claude.md` in container
-- Claude CLI automatically loads `claude.md` on startup
-- CE minions have full project context without manual setup
+### 🎯 GitHub-Native Workflow
+All coordination happens through GitHub - Issues for task assignment, Pull Requests for code review, labels for agent assignment. Your existing tools and processes just work.
 
-### Git Integration
-- SSH keys for secure GitHub access
-- GitHub CLI for PR creation
-- Git configured for commits as "Claude Engineer"
-- Fetches latest from master before starting work
+### 📋 Role-Based Agents
+Each agent is purpose-built for its role with specialized instructions and constraints. PM agents can't write code. Engineers can't merge PRs. QA agents run servers that engineers can't touch.
 
-### Optimal Configuration
-- Uses Sonnet model (cost-effective)
-- YOLO permissions (`--dangerously-skip-permissions`)
-- Auto-approves all tool usage (Bash, Edit, Write, Read, Glob, Grep)
-- All git operations happen inside container
+## How It Works
 
-## Customization Guide
+1. **Initialize** a workspace pointing to your repositories
+2. **Configure** which agents you want and which repos they work on
+3. **Start** agents in their own terminal sessions
+4. **Collaborate** through GitHub - agents create issues, implement features, and verify changes
 
-### For Your Project
+## Quick Start
 
-1. **Update `CLAUDE.md`** with:
-   - Your project architecture
-   - Code standards and patterns
-   - Key files and their purposes
-   - Development commands
+### Prerequisites
 
-2. **Update `.minions/instructions.md`** to mirror CLAUDE.md
-   - This becomes the CE agent's context
-   - Keep it synchronized with CLAUDE.md
+- Node.js 20+
+- [Claude Code CLI](https://www.npmjs.com/package/@anthropic-ai/claude-code) installed globally
+- GitHub account with SSH access configured
 
-3. **Modify `.minions/Dockerfile`** if needed:
-   - Update dependency installation (lines 38-40)
-   - Add project-specific tools
-   - Adjust git email domain (line 48)
-
-4. **Create task templates** for common patterns:
-   - Backend API tasks
-   - Frontend component tasks
-   - Bug fix tasks
-   - Refactoring tasks
-
-## Troubleshooting
-
-### "Cannot connect to Docker daemon"
-**Solution:** Start Docker Desktop
-
-### "Permission denied" when running scripts
-**Solution:**
-```bash
-chmod +x .minions/scripts/*.sh
-```
-
-### "Authentication failed" in container
-**Solution:** Check your `.env` file has valid `ANTHROPIC_API_KEY`
-
-### "SSH key not working" with GitHub
-**Solution:** Make sure you added the public key to GitHub at https://github.com/settings/keys
-
-### "gh: command not found" or PR creation fails
-**Solution:** Ensure `GITHUB_TOKEN` is in your `.env` file
-
-### Minion stuck or behaving incorrectly
-**Solution:**
-```bash
-# Exit Claude CLI (Ctrl+C or type "exit")
-# Exit container
-exit
-# Stop and recreate minion
-docker stop minion-ce-<minion-name>
-docker rm minion-ce-<minion-name>
-make @minion/create NAME=<minion-name>
-```
-
-## Tips for Success
-
-### Writing Effective Task Files
-1. **Be specific** - Include exact file paths and method signatures
-2. **Provide context** - Explain why, not just what
-3. **Set constraints** - Document what NOT to change
-4. **Define success** - Clear, testable criteria
-5. **Order dependencies** - Specify which tasks must complete first
-
-### Working with CE Minions
-1. **One task at a time** - Keep tasks focused and scoped
-2. **Review before running** - Validate task file completeness
-3. **Monitor progress** - Use `docker logs` to watch execution
-4. **Test thoroughly** - Review PRs before merging
-5. **Clean up** - Remove old minions after merging
-
-### CAO Best Practices
-1. **Understand codebase first** - Read files before creating tasks
-2. **Break down features** - Split large features into small tasks
-3. **Follow architecture** - Respect existing patterns
-4. **Document assumptions** - Make implicit knowledge explicit
-5. **Iterate on tasks** - Improve task templates based on results
-
-## Advanced Usage
-
-### Running Multiple Minions
-While the default workflow uses one minion at a time, you can run multiple minions for parallel work:
+### Installation
 
 ```bash
-make @minion/create NAME=task-1
-make @minion/create NAME=task-2
-
-# In separate terminals:
-make @minion/run NAME=task-1
-make @minion/run NAME=task-2
+git clone https://github.com/ddluc/claude-minions.git
+cd claude-minions
+npm install
+npm link  # Optional: make 'minions' globally available
 ```
 
-**Note:** Ensure tasks don't have conflicting file changes.
+### Setup Your Workspace
 
-### Task Dependencies
-For multi-step features with dependencies:
-
-1. Create tasks in dependency order
-2. In each task file, specify dependencies
-3. Run CE minions sequentially
-4. Each minion merges its PR before the next starts
-
-### Monitoring Minion Activity
 ```bash
-# Watch logs in real-time
-docker logs -f minion-ce-<minion-name>
+# In your project directory
+minions init
 
-# Check container resource usage
-docker stats minion-ce-<minion-name>
-
-# Inspect container
-docker inspect minion-ce-<minion-name>
+# Edit minions.json to configure your repos and agents
 ```
+
+**Example minions.json:**
+```json
+{
+  "mode": "ask",
+  "repos": [
+    {
+      "name": "frontend",
+      "url": "git@github.com:you/frontend.git",
+      "path": "frontend"
+    },
+    {
+      "name": "backend",
+      "url": "git@github.com:you/backend.git",
+      "path": "backend"
+    }
+  ],
+  "roles": {
+    "cao": { "enabled": true, "model": "opus" },
+    "fe-engineer": { "enabled": true, "model": "sonnet" },
+    "be-engineer": { "enabled": true, "model": "sonnet" },
+    "qa": { "enabled": true, "model": "haiku" }
+  },
+  "ssh": "~/.ssh/id_ed25519"
+}
+```
+
+### Launch Agents
+
+```bash
+# Start agents in separate terminal sessions
+minions start cao
+minions start fe-engineer
+minions start be-engineer
+minions start qa
+
+# Check status
+minions status
+
+# Stop an agent
+minions stop cao
+```
+
+## Real-World Workflow
+
+### Scenario: Adding User Authentication
+
+**1. PM identifies priority**
+```bash
+minions start pm
+# PM reviews open issues and identifies #42 as high priority
+```
+
+**2. CAO architects the solution**
+```bash
+minions start cao
+# User: "Please handle issue #42 - add user authentication"
+# CAO reads codebase, designs approach, creates issues:
+#   - Issue #43: Backend auth endpoints [role:be-engineer]
+#   - Issue #44: Frontend login UI [role:fe-engineer]
+```
+
+**3. Engineers implement in parallel**
+```bash
+# Terminal 1
+minions start be-engineer
+# Picks up #43, implements JWT auth, creates PR #10
+
+# Terminal 2
+minions start fe-engineer
+# Picks up #44, builds login form, creates PR #11
+```
+
+**4. QA validates**
+```bash
+minions start qa
+# Checks out PR #10, runs backend tests ✓
+# Checks out PR #11, starts dev server, tests UI ✓
+# Marks both PRs ready for review
+```
+
+**5. You review and merge**
+Both PRs are validated and ready. You review, approve, and ship.
+
+## Use Cases
+
+### Monorepo or Multi-Repo Projects
+Coordinate changes across frontend, backend, and infrastructure repositories with agents that understand your full architecture.
+
+### Feature Development
+Break down complex features into discrete tasks, implement them in parallel across different repos, and validate before merge.
+
+### Code Review & QA
+Automated testing and verification of PRs before they reach your review queue. QA agents can run your app, test edge cases, and report issues.
+
+### Refactoring at Scale
+Coordinate architectural changes across multiple repositories with the CAO planning and engineers executing in isolated environments.
+
+### Autonomous Development
+Run on a remote server (EC2, etc.) and let your agent team work 24/7, handling issues, implementing features, and creating PRs for your review.
+
+## Agent Roles Explained
+
+### Product Manager (PM)
+- Monitors GitHub Issues across all repositories
+- Tracks project status and priorities
+- Communicates priorities to the CAO
+- **Constraints:** Cannot write code or create PRs
+
+### Chief Agent Officer (CAO)
+- Technical architect and task coordinator
+- Reads codebases to understand architecture
+- Breaks features into implementable tasks
+- Creates GitHub Issues with role assignments
+- **Constraints:** Delegates implementation, doesn't code
+
+### Frontend Engineer
+- Implements UI features and components
+- Follows existing patterns and conventions
+- Creates feature branches and draft PRs
+- **Constraints:** Frontend repos only, no backend changes
+
+### Backend Engineer
+- Implements APIs, services, and data models
+- Writes tests for backend changes
+- Creates feature branches and draft PRs
+- **Constraints:** Backend repos only, no frontend changes
+
+### QA Engineer
+- Validates PRs by running tests and dev servers
+- Only agent authorized to run applications
+- Reports issues or marks PRs ready for review
+- **Constraints:** Cannot implement features, only verify
+
+## Configuration
+
+### Repository Settings
+
+```json
+{
+  "name": "my-app",
+  "url": "git@github.com:you/my-app.git",
+  "path": "my-app",
+  "testCommand": "npm test",      // Optional
+  "devCommand": "npm run dev",    // Optional
+  "port": 3000                    // Optional
+}
+```
+
+### Role Configuration
+
+```json
+{
+  "enabled": true,
+  "model": "opus" | "sonnet" | "haiku",
+  "systemPrompt": "Custom instructions",        // Optional
+  "systemPromptFile": "path/to/prompt.md"      // Optional
+}
+```
+
+### Permission Modes
+
+- **`ask`** - Agents request permission for file edits, git operations
+- **`yolo`** - Agents operate autonomously (use with caution)
+
+## Architecture
+
+Claude Minions is built as a TypeScript monorepo with three packages:
+
+- **CLI** - Commands for initialization, agent management, and status
+- **Core** - Shared types and message definitions
+- **Templates** - Role-specific agent instructions
+
+Each agent runs in an isolated directory (`.minions/<role>/`) with its own repository clones and configuration. All coordination happens through GitHub's native features - Issues, PRs, and labels.
+
+## Best Practices
+
+✅ **Start small** - Begin with one or two agents before scaling up
+✅ **Use SSH keys** - Configure SSH for seamless git operations
+✅ **Review PRs** - Agents create draft PRs for your final review
+✅ **Assign models thoughtfully** - Opus for planning, Sonnet for coding, Haiku for testing
+✅ **Monitor agent activity** - Check GitHub for issues, PRs, and comments
+
+## FAQ
+
+**Q: Do agents run autonomously?**
+A: Agents can run autonomously in "yolo" mode or request permission in "ask" mode. You control the level of autonomy.
+
+**Q: Can I customize agent behavior?**
+A: Yes, via custom system prompts or by modifying agent templates.
+
+**Q: What if agents conflict?**
+A: Each agent has isolated repository clones and works on separate branches. GitHub handles merge coordination.
+
+**Q: Do I need multiple Claude API keys?**
+A: No, all agents use your single Claude Code CLI configuration.
+
+**Q: Can agents work on private repositories?**
+A: Yes, as long as your SSH key has access.
 
 ## Contributing
 
-This is a template framework. Customize it for your needs and share improvements!
+We welcome contributions! Please open an issue to discuss major changes before submitting a PR.
 
 ## License
 
-[Your License Here]
+MIT
+
+---
+
+**Built with Claude Code CLI** | [Documentation](./docs/architecture.md) | [Issues](https://github.com/ddluc/claude-minions/issues)
