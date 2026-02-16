@@ -116,6 +116,12 @@ export async function start(role: string): Promise<void> {
     claudeArgs.push('--dangerously-skip-permissions');
   }
 
+  // Pass model configuration if specified
+  const roleConfig = settings.roles[agentRole];
+  if (roleConfig?.model) {
+    claudeArgs.push('--model', roleConfig.model);
+  }
+
   // Launch claude
   console.log(chalk.bold.green(`\nStarting ${role} agent...`));
   console.log(chalk.dim(`Working directory: ${roleDir}`));
