@@ -35,39 +35,37 @@ export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot
     content += `
 ## WebSocket Communication
 
-This minion communicates with other agents via a WebSocket server. Use the following bash functions to listen for and send messages.
+**IMPORTANT: You MUST run \`ws_listen\` after every response to stay connected and receive new messages from other agents.**
 
-### Listening for Messages
+This minion communicates with other agents via a WebSocket server. Use the bash functions below to listen for and send messages.
 
-Run \`ws_listen\` to connect to the server and wait for incoming messages:
+### Setup
+
+Save and source the following script at the start of your session:
 
 \`\`\`bash
 #!/bin/bash
-MINION_ROLE="\${MINION_ROLE:-${role}}"
-WS_URL="ws://localhost:${serverPort}/ws/\${MINION_ROLE}"
+# WebSocket listener for minion communication
+WS_URL="ws://localhost:${serverPort}/ws"
 
 ws_listen() {
-  echo "Connecting to \${WS_URL}..."
+  echo "Listening for messages on \${WS_URL}..."
   websocat "\${WS_URL}" | while read -r msg; do
     echo "New message: \${msg}"
   done
 }
-\`\`\`
 
-### Sending Messages
-
-Use \`ws_send\` to send messages back to the server:
-
-\`\`\`bash
 ws_send() {
   local message="$1"
   echo "\${message}" | websocat "\${WS_URL}"
 }
 \`\`\`
 
-### Instructions
-- After completing each task, run: \`ws_listen\` to resume monitoring
-- To send a message: \`ws_send '{"type":"chat","from":"${role}","to":"cao","content":"your message","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}'\`
+### Workflow
+1. After completing any task or responding to any message, **always** run \`ws_listen\` to resume monitoring for new messages
+2. When a message arrives, process it and respond using \`ws_send\`
+3. To send a message: \`ws_send '{"type":"chat","from":"${role}","to":"<target-role>","content":"your message","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}'\`
+4. After sending your response, run \`ws_listen\` again to continue listening
 
 `;
   }
