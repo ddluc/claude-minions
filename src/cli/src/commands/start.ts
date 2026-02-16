@@ -103,7 +103,7 @@ export async function start(role: string): Promise<void> {
   // Regenerate CLAUDE.md so template changes take effect
   fs.writeFileSync(
     path.join(roleDir, 'CLAUDE.md'),
-    buildClaudeMd(agentRole, settings.roles[agentRole] || {}, workspaceRoot, repos, !!sshKeyPath),
+    buildClaudeMd(agentRole, settings.roles[agentRole] || {}, workspaceRoot, repos, !!sshKeyPath, settings.serverPort),
   );
 
   // Write PID file for status tracking

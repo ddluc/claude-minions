@@ -26,9 +26,51 @@ export function loadRoleTemplate(role: AgentRole): string {
   return fs.readFileSync(path.join(TEMPLATES_DIR, `${role}.md`), 'utf-8');
 }
 
-export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false): string {
+export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false, serverPort?: number): string {
   const base = loadRoleTemplate(role);
   let content = base;
+
+  // Inject WebSocket communication script if server port is configured
+  if (serverPort) {
+    content += `
+## WebSocket Communication
+
+This minion communicates with other agents via a WebSocket server. Use the following bash functions to listen for and send messages.
+
+### Listening for Messages
+
+Run \`ws_listen\` to connect to the server and wait for incoming messages:
+
+\`\`\`bash
+#!/bin/bash
+MINION_ROLE="\${MINION_ROLE:-${role}}"
+WS_URL="ws://localhost:${serverPort}/ws/\${MINION_ROLE}"
+
+ws_listen() {
+  echo "Connecting to \${WS_URL}..."
+  websocat "\${WS_URL}" | while read -r msg; do
+    echo "New message: \${msg}"
+  done
+}
+\`\`\`
+
+### Sending Messages
+
+Use \`ws_send\` to send messages back to the server:
+
+\`\`\`bash
+ws_send() {
+  local message="$1"
+  echo "\${message}" | websocat "\${WS_URL}"
+}
+\`\`\`
+
+### Instructions
+- After completing each task, run: \`ws_listen\` to resume monitoring
+- To send a message: \`ws_send '{"type":"chat","from":"${role}","to":"cao","content":"your message","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}'\`
+
+`;
+  }
 
   // Inject SSH authentication info if SSH key is configured
   if (hasSshKey) {
