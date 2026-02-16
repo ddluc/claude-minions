@@ -104,6 +104,9 @@ export async function daemon(): Promise<void> {
           cwd: roleDir,
           encoding: 'utf-8',
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+          env: {
+            ...process.env, // Pass through all environment variables (including GITHUB_TOKEN, GH_TOKEN, PATH, etc.)
+          },
         });
 
         if (result.error) {
