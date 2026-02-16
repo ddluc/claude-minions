@@ -13,6 +13,9 @@ export async function up(): Promise<void> {
 
   console.log(chalk.bold('🚀 Starting claude-minions workspace...\n'));
 
+  // Debug: check if GitHub token is available
+  console.log(chalk.dim(`Environment check - GITHUB_TOKEN: ${process.env.GITHUB_TOKEN ? 'present' : 'missing'}, GH_TOKEN: ${process.env.GH_TOKEN ? 'present' : 'missing'}`));
+
   // Check if server is already running
   const serverPidFile = path.join(minionsDir, 'server.pid');
   if (fs.existsSync(serverPidFile)) {
