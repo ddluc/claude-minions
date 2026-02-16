@@ -42,8 +42,8 @@ All agents clone from and push to GitHub. The minions workspace exists independe
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  EC2 Server (or local machine)                              │
-│                                                              │
-│  ~/workspaces/my-saas/                                      │
+│                                                             │
+│  ~/workspaces/my-app/                                       │
 │  ├── .env                                                   │
 │  ├── .minions/                                              │
 │  │   ├── settings.json                                      │
@@ -67,7 +67,7 @@ All agents clone from and push to GitHub. The minions workspace exists independe
 │  │       ├── tasks/                                         │
 │  │       ├── frontend/ (cloned repo)                        │
 │  │       └── backend/ (cloned repo)                         │
-│  │                                                           │
+│  │                                                          │
 │  └── (Running processes)                                    │
 │      ├── minions server (WebSocket + HTTP)                  │
 │      ├── minions start cao                                  │
@@ -80,9 +80,9 @@ All agents clone from and push to GitHub. The minions workspace exists independe
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Your Laptop (Browser)                                      │
-│                                                              │
+│                                                             │
 │  https://ec2-server.com:3000                                │
-│                                                              │
+│                                                             │
 │  Chat Interface:                                            │
 │  [You]: @cao Add user authentication                        │
 │  [CAO]: Breaking down... ✓ Created tasks                    │
@@ -156,24 +156,18 @@ All agents clone from and push to GitHub. The minions workspace exists independe
       "name": "frontend",
       "url": "git@github.com:yourname/my-saas-frontend.git",
       "path": "frontend",
-      "testCommand": "npm test",
-      "devCommand": "npm run dev",
       "port": 3000
     },
     {
       "name": "backend",
       "url": "git@github.com:yourname/my-saas-backend.git",
       "path": "backend",
-      "testCommand": "pytest",
-      "devCommand": "python manage.py runserver",
       "port": 8000
     },
     {
       "name": "mobile",
       "url": "git@github.com:yourname/my-saas-mobile.git",
       "path": "mobile",
-      "testCommand": "npm test",
-      "devCommand": "npm start",
       "port": 8081
     }
   ]
