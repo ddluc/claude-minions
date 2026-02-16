@@ -107,13 +107,30 @@ export async function daemon(): Promise<void> {
         });
 
         if (result.error) {
-          console.log(`[${role}] Error: ${result.error.message}`);
+          const errorMsg = `Error spawning Claude: ${result.error.message}`;
+          console.log(`[${role}] ${errorMsg}`);
+          wsClient.sendMessage({
+            type: 'chat',
+            from: role,
+            to: msg.from,
+            content: `❌ ${errorMsg}`,
+            timestamp: new Date().toISOString(),
+          });
           continue;
         }
 
         if (result.status !== 0) {
+          const errorMsg = `Claude exited with code ${result.status}\nStderr: ${result.stderr}\nStdout: ${result.stdout}`;
           console.log(`[${role}] Claude exited with code ${result.status}`);
           console.log(`[${role}] stderr: ${result.stderr}`);
+          console.log(`[${role}] stdout: ${result.stdout}`);
+          wsClient.sendMessage({
+            type: 'chat',
+            from: role,
+            to: msg.from,
+            content: `❌ ${errorMsg}`,
+            timestamp: new Date().toISOString(),
+          });
           continue;
         }
 
@@ -132,7 +149,15 @@ export async function daemon(): Promise<void> {
         console.log(`[${role}] Response sent to ${msg.from}`);
 
       } catch (error) {
-        console.log(`[${role}] Error: ${error}`);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[${role}] Unexpected error: ${errorMsg}`);
+        wsClient.sendMessage({
+          type: 'chat',
+          from: role,
+          to: msg.from,
+          content: `❌ Unexpected error: ${errorMsg}`,
+          timestamp: new Date().toISOString(),
+        });
       }
     }
 
