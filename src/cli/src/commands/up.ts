@@ -30,7 +30,10 @@ export async function up(): Promise<void> {
 
   // Start WebSocket server
   console.log(`Starting WebSocket server on port ${settings.serverPort || 3000}...`);
-  const serverProcess = spawn('minions', ['server'], {
+
+  // Use tsx to run the bin script
+  const binPath = path.join(workspaceRoot, 'bin', 'minions.ts');
+  const serverProcess = spawn('tsx', [binPath, 'server'], {
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
     cwd: workspaceRoot
@@ -60,7 +63,7 @@ export async function up(): Promise<void> {
   console.log(`\nStarting daemon (handles all roles: ${enabledRoles.join(', ')})...`);
 
   // Start daemon
-  const daemonProcess = spawn('minions', ['daemon'], {
+  const daemonProcess = spawn('tsx', [binPath, 'daemon'], {
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
     cwd: workspaceRoot
