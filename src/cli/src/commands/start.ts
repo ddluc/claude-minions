@@ -7,6 +7,7 @@ import type { AgentRole } from '../../../core/types.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 import { buildClaudeMd } from '../lib/templates.js';
+import { AgentWebSocketClient } from '../agent/WebSocketClient.js';
 
 export async function start(role: string): Promise<void> {
   // Validate role
@@ -121,6 +122,31 @@ export async function start(role: string): Promise<void> {
   if (roleConfig?.model) {
     claudeArgs.push('--model', roleConfig.model);
   }
+
+  // Connect agent to server if serverPort is configured
+  let wsClient: AgentWebSocketClient | undefined;
+  if (settings.serverPort) {
+    const serverUrl = `ws://localhost:${settings.serverPort}/ws`;
+    wsClient = new AgentWebSocketClient(agentRole, serverUrl);
+    console.log(chalk.dim(`Connecting to server at ${serverUrl}...`));
+    wsClient.connect();
+  }
+
+  // Ensure cleanup on exit
+  const cleanup = () => {
+    if (wsClient) {
+      wsClient.disconnect();
+    }
+  };
+  process.on('exit', cleanup);
+  process.on('SIGINT', () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    cleanup();
+    process.exit(0);
+  });
 
   // Launch claude
   console.log(chalk.bold.green(`\nStarting ${role} agent...`));
