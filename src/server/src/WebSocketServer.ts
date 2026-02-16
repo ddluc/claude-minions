@@ -33,7 +33,10 @@ export class WebSocketServer {
     // Set up message handler
     ws.on('message', (data) => {
       try {
-        const message = JSON.parse(data.toString());
+        const rawData = data.toString();
+        console.log(`Received message from ${clientId}: ${rawData.substring(0, 200)}`);
+
+        const message = JSON.parse(rawData);
 
         // Update connection metadata if it's an agent_status message
         if (message.type === 'agent_status') {
@@ -46,10 +49,12 @@ export class WebSocketServer {
         // Route the message
         this.router.route(message, clientId);
       } catch (error) {
-        console.error('Error handling message:', error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`Error handling message from ${clientId}:`, errorMsg);
+        console.error('Raw data received:', data.toString().substring(0, 500));
         ws.send(JSON.stringify({
           type: 'system',
-          content: 'Error processing message',
+          content: `Error processing message: ${errorMsg}`,
           timestamp: new Date().toISOString(),
         }));
       }
