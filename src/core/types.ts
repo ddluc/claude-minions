@@ -6,9 +6,12 @@ export interface Repo {
   path: string;
 }
 
+export type ClaudeModel = 'opus' | 'sonnet' | 'haiku';
+
 export interface RoleConfig {
   systemPrompt?: string;
   systemPromptFile?: string;
+  model?: ClaudeModel;
 }
 
 export interface Settings {
