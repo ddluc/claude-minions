@@ -19,6 +19,7 @@ export interface Settings {
   repos: Repo[];
   roles: Partial<Record<AgentRole, RoleConfig>>;
   ssh?: string;
+  serverPort?: number;
 }
 
 export type AgentRole = 'pm' | 'cao' | 'fe-engineer' | 'be-engineer' | 'qa';
