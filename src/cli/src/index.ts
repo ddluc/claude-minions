@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Command } from 'commander';
 import { init } from './commands/init.js';
 import { server } from './commands/server.js';
