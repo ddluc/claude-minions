@@ -4,18 +4,6 @@
 
 Claude Minions orchestrates multiple specialized AI agents working together on your codebase. Each agent has a defined role - Product Manager, Chief Architect, Engineers, and QA - collaborating through GitHub to ship features faster and more reliably.
 
-## Why Claude Minions?
-
-**Building complex software requires coordination.** Whether you're managing multiple repositories, coordinating frontend and backend changes, or just want AI assistance that understands your full project context, Claude Minions provides a structured, team-based approach to AI-assisted development.
-
-Instead of a single AI trying to do everything, you get a team:
-- **Product Manager** monitors issues and priorities
-- **Chief Agent Officer** designs solutions and breaks down work
-- **Engineers** implement features in isolated environments
-- **QA** validates changes before merge
-
-Each agent works in its own isolated clone of your repositories, coordinating through GitHub Issues and Pull Requests - just like a real development team.
-
 ## Key Features
 
 ### 🏢 Multi-Repository Orchestration
@@ -27,31 +15,10 @@ Each agent gets its own complete clone of your repositories with isolated workin
 ### 🎯 GitHub-Native Workflow
 All coordination happens through GitHub - Issues for task assignment, Pull Requests for code review, labels for agent assignment. Your existing tools and processes just work.
 
-### 🔑 Secure SSH Integration
-Automatic SSH key configuration for all agents. Push, pull, and collaborate securely without manual setup.
-
-### ⚙️ Flexible Model Selection
-Assign different Claude models per role - use Opus for architecture planning, Sonnet for engineering, and Haiku for faster QA tasks. Optimize for the right balance of capability and cost.
-
 ### 📋 Role-Based Agents
 Each agent is purpose-built for its role with specialized instructions and constraints. PM agents can't write code. Engineers can't merge PRs. QA agents run servers that engineers can't touch.
 
 ## How It Works
-
-```
-                    Your Workspace
-                         │
-        ┌────────────────┼────────────────┐
-        │                │                │
-    [PM Agent]      [CAO Agent]    [Engineer Agents]     [QA Agent]
-        │                │                │                   │
-        └────────────────┴────────────────┴───────────────────┘
-                         │
-                    GitHub Issues
-                    Pull Requests
-                         │
-                  Your Repositories
-```
 
 1. **Initialize** a workspace pointing to your repositories
 2. **Configure** which agents you want and which repos they work on
