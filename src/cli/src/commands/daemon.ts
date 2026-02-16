@@ -88,6 +88,7 @@ export async function daemon(): Promise<void> {
         const prompt = `Message from ${msg.from}: ${msg.content}`;
 
         console.log(`[${role}] Processing message (${queue.length} remaining in queue)`);
+        console.log(`[${role}] Environment check - GITHUB_TOKEN: ${process.env.GITHUB_TOKEN ? 'present' : 'missing'}, GH_TOKEN: ${process.env.GH_TOKEN ? 'present' : 'missing'}`);
 
         // Get model from settings
         const model = settings.roles[role]?.model || 'sonnet';
