@@ -131,10 +131,20 @@ async function promptForSettings(): Promise<Settings> {
     validate: (answer: string[]) => answer.length > 0 || 'You must select at least one role.',
   }]);
 
-  // Build roles config object
+  // Build roles config object with recommended models
+  const RECOMMENDED_MODELS: Record<AgentRole, 'opus' | 'sonnet' | 'haiku'> = {
+    'cao': 'opus',          // Architecture and planning needs deep reasoning
+    'pm': 'sonnet',         // Balanced for coordination and triage
+    'fe-engineer': 'sonnet', // Balanced for implementation
+    'be-engineer': 'sonnet', // Balanced for implementation
+    'qa': 'haiku',          // Faster execution for testing
+  };
+
   const roles: Partial<Record<AgentRole, RoleConfig>> = {};
   for (const role of selectedRoles) {
-    roles[role as AgentRole] = {};
+    roles[role as AgentRole] = {
+      model: RECOMMENDED_MODELS[role as AgentRole],
+    };
   }
 
   // Prompt for SSH key path (optional)

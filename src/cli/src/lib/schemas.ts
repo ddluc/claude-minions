@@ -7,9 +7,12 @@ export const RepoSchema = z.object({
   path: z.string(),
 });
 
+export const ClaudeModelSchema = z.enum(['opus', 'sonnet', 'haiku']);
+
 export const RoleConfigSchema = z.object({
   systemPrompt: z.string().optional(),
   systemPromptFile: z.string().optional(),
+  model: ClaudeModelSchema.optional(),
 }).refine(
   data => !(data.systemPrompt && data.systemPromptFile),
   { message: 'Cannot specify both systemPrompt and systemPromptFile' }
