@@ -1,5 +1,20 @@
 import chalk from 'chalk';
+import { MinionsServer } from '../../../server/src/index.js';
+import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 
 export async function server(): Promise<void> {
-  console.log(chalk.yellow('minions server - not yet implemented (Task 2.5)'));
+  try {
+    const workspaceRoot = getWorkspaceRoot();
+    const settings = loadSettings(workspaceRoot);
+
+    const port = settings.serverPort || 3000;
+    const srv = new MinionsServer();
+
+    console.log(chalk.green(`Starting Minions server on port ${port}...`));
+    srv.start(port);
+  } catch (error) {
+    console.error(chalk.red('Failed to start server:'));
+    console.error(error instanceof Error ? error.message : 'Unknown error');
+    process.exit(1);
+  }
 }
