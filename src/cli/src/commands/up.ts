@@ -36,7 +36,8 @@ export async function up(): Promise<void> {
   const serverProcess = spawn('tsx', [binPath, 'server'], {
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
-    cwd: workspaceRoot
+    cwd: workspaceRoot,
+    env: process.env, // Pass through environment variables
   });
 
   const serverLogFile = path.join(minionsDir, 'server.log');
@@ -66,7 +67,8 @@ export async function up(): Promise<void> {
   const daemonProcess = spawn('tsx', [binPath, 'daemon'], {
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
-    cwd: workspaceRoot
+    cwd: workspaceRoot,
+    env: process.env, // Pass through environment variables
   });
 
   const daemonLogFile = path.join(minionsDir, 'daemon.log');
