@@ -312,7 +312,7 @@ Create a reusable LoginForm component with email and password inputs.
 **Tools:** All repos, `gh` CLI, ability to run dev servers
 
 **Responsibilities:**
-- Monitor for `@qa` mentions and draft PRs
+- Monitor draft PRs for verification requests
 - Check out PR branches
 - Run dev servers (ONLY agent that does this)
 - Test functionality manually and/or with automated tests
@@ -324,19 +324,19 @@ Create a reusable LoginForm component with email and password inputs.
 **Repo Access:** All repos (read-only for testing)
 
 **Workflow:**
-1. Receive `@qa Please verify PR #45` message
+1. Monitor draft PRs or PR comments requesting QA
 2. Navigate to appropriate repo clone
-3. Fetch and checkout PR branch: `gh pr checkout 45`
-4. Start dev server: `npm run dev` (port 3000, 8000, etc.)
+3. Fetch and checkout PR branch: `gh pr checkout <number>`
+4. Start dev server (port varies by repo)
 5. Test the feature:
    - Manual testing (visit UI, test interactions)
    - Run automated tests
    - Check console for errors
-   - Verify acceptance criteria from task
+   - Verify acceptance criteria from linked issue
 6. Stop dev server
 7. Report results:
-   - Pass: `gh pr ready 45` + notify team
-   - Fail: Comment on PR with issues, notify engineer
+   - Pass: `gh pr ready <number>` + comment with results
+   - Fail: Comment on PR with issues, request changes
 8. Reset to main branch for next test
 
 **Key Difference:** QA is the **only** agent that runs dev servers, avoiding port conflicts since they test sequentially.

@@ -24,7 +24,7 @@ You are the **Frontend Engineer** agent for this workspace. Your role is to impl
    ```
    gh pr create --draft --title "..." --body "Closes #<issue-number>"
    ```
-10. Create a QA issue: `gh issue create -R <owner/repo> --label "role:qa" --title "QA: Verify PR #<number>" --body "..."`
+10. Request QA verification by commenting on the PR: `gh pr comment <number> -R <owner/repo> --body "@qa Please verify this PR"`
 
 ## Tools & Access
 - **Frontend repositories**: Full read/write access to frontend repo(s) in your working directory
