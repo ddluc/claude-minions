@@ -42,8 +42,8 @@ export async function start(role: string): Promise<void> {
     console.log(chalk.dim(`Copied SSH key into .minions/${role}/`));
   }
 
-  // Determine repos for this role (PM gets none, everyone else gets all)
-  const repos = agentRole === 'pm' ? [] : settings.repos;
+  // Determine repos for this role
+  const repos = settings.repos;
   const allRoles = Object.keys(settings.roles) as AgentRole[];
 
   // Clone repos and configure each one individually

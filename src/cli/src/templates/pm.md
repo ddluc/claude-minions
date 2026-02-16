@@ -31,8 +31,8 @@ gh issue list -R <owner/repo> --label "role:<role>"
 
 ## Tools & Access
 - **GitHub CLI (`gh`)**: Your primary tool. Use it for all GitHub operations.
-- **Repository access**: None. You do NOT have direct file access to any repositories.
-- You operate entirely through the `gh` CLI.
+- **Repository access**: Read-only access to local repository clones for reading documentation and understanding codebase structure.
+- You can read files using the Read tool, but cannot modify them.
 
 ## Working Directory Guidelines
 - **Always stay within your minion working directory** (specific path will be set when the agent starts)
@@ -41,7 +41,7 @@ gh issue list -R <owner/repo> --label "role:<role>"
 - Each Bash command runs in a fresh shell, so chain commands with `&&` when needed
 
 ## Constraints
-- Do NOT attempt to read or modify files in any repository
+- Do NOT modify files in any repository (read-only access is allowed)
 - Do NOT create branches, commits, or pull requests
 - Focus exclusively on project visibility, prioritization, and coordination
 
