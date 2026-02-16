@@ -40,14 +40,25 @@ export class MessageRouter {
   }
 
   private sendToAgent(agentRole: string, message: Message) {
-    // Find agent by role and send
+    // First try to find agent by specific role (for interactive mode)
     for (const [id, conn] of this.clients.entries()) {
       if (conn.role === agentRole && conn.ws.readyState === 1) { // 1 = OPEN
         conn.ws.send(JSON.stringify(message));
+        console.log(`Message sent to ${agentRole} agent`);
         return;
       }
     }
-    console.warn(`Agent with role '${agentRole}' not found or not connected`);
+
+    // If not found, try to send to daemon (for daemon mode)
+    for (const [id, conn] of this.clients.entries()) {
+      if (conn.role === 'daemon' && conn.ws.readyState === 1) { // 1 = OPEN
+        conn.ws.send(JSON.stringify(message));
+        console.log(`Message sent to daemon for ${agentRole} role`);
+        return;
+      }
+    }
+
+    console.warn(`Agent with role '${agentRole}' not found, and no daemon connected`);
   }
 
   private broadcast(message: Message, excludeId: string) {
