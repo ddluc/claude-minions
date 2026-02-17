@@ -18,14 +18,8 @@ export class MessageRouter {
       // Validate message
       const message = validateMessage(rawMessage);
 
-      // Route based on message type and 'to' field
-      if (message.type === 'chat' && message.to) {
-        // Unicast to specific agent
-        this.sendToAgent(message.to, message);
-      } else {
-        // Broadcast to all agents except sender
-        this.broadcast(message, senderId);
-      }
+      // Broadcast to all connected agents except sender
+      this.broadcast(message, senderId);
     } catch (error) {
       console.error('Invalid message:', error);
       // Send error back to sender
@@ -38,18 +32,6 @@ export class MessageRouter {
         }));
       }
     }
-  }
-
-  private sendToAgent(agentRole: string, message: Message) {
-    // Find a connected client with the matching role
-    for (const [id, conn] of this.clients.entries()) {
-      if (conn.role === agentRole && conn.ws.readyState === 1) { // 1 = OPEN
-        conn.ws.send(JSON.stringify(message));
-        console.log(`Message sent to ${agentRole}`);
-        return;
-      }
-    }
-    console.warn(`Agent '${agentRole}' not connected - cannot deliver message`);
   }
 
   private broadcast(message: Message, excludeId: string) {
