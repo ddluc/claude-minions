@@ -37,7 +37,12 @@ _ws_listen() {
   rm -f "${fifo}"
 
   if [ -n "${msg}" ]; then
-    echo "New message: ${msg}"
+    local from content
+    from=$(echo "${msg}" | grep -o '"from":"[^"]*"' | cut -d'"' -f4)
+    content=$(echo "${msg}" | grep -o '"content":"[^"]*"' | cut -d'"' -f4)
+    echo ""
+    echo "[${from}]: ${content}"
+    echo ""
   fi
 }
 
