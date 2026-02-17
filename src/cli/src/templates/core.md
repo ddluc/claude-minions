@@ -1,6 +1,8 @@
-## WebSocket Team Chat Communication
+## Working directory
 
-**IMPORTANT: After every response, immediately run `ws.sh listen` again to wait for the next message.**
+Under all circumstances, never navigate out of or alter files outside of your `.minion/<role>` directory. Inside `.minions` each of your team members each have their own repository. At the top level of the workspace there is the root project. Always make all changes and operations in context to your local working directory. 
+
+## WebSocket Team Chat Communication
 
 You communicate with other agents and the user via a WebSocket server. A `ws.sh` script is provided in your working directory — use it to listen and send messages.
 
@@ -31,5 +33,5 @@ The script uses `${SERVER_PORT:-3000}` for the WebSocket URL and appends all mes
 1. At the start of your session, read `conversation.txt` to catch up on any prior messages
 2. Run `./ws.sh listen <your-role>` as a **foreground blocking call** — it exits as soon as one non-system message arrives and appends it to `conversation.txt`
 3. Process the message and respond using `./ws.sh chat <from> <to> "message"` if needed
-4. Immediately run `./ws.sh listen <your-role>` again to wait for the next message
+4. **Immediately run `./ws.sh listen <your-role>` again** — do this after every send, without exception, even if you also reply in the Claude Code interface
 5. If the user sends a message from the interactive prompt, reply to them, then restart the listener
