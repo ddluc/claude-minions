@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-
+import { Header, HeaderName, Content } from '@carbon/react';
+import styled from 'styled-components';
 import type {
   AgentRole,
   AgentState,
@@ -12,6 +13,7 @@ import {
   DEFAULT_PORT,
   VALID_ROLES,
 } from '../../core/constants';
+import { RoleBadge } from './components';
 import RolePrompt from './RolePrompt';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
@@ -25,6 +27,27 @@ const DEFAULT_SETTINGS: Settings = {
   ssh: '',
   permissions: { allowBash: true, allowGit: true },
 };
+
+const AppShell = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+`;
+
+const HeaderBadges = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 1rem;
+`;
+
+const MainContent = styled(Content)`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+`;
 
 export default function App() {
   const [settings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -106,24 +129,21 @@ export default function App() {
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>Claude Minions</h1>
-        <div className="agent-status-bar">
+    <AppShell>
+      <Header aria-label="Claude Minions">
+        <HeaderName prefix="">
+          Claude Minions
+        </HeaderName>
+        <HeaderBadges>
           {Array.from(agents.values()).map((agent) => (
-            <span
-              key={agent.role}
-              className={`agent-badge status-${agent.status}`}
-            >
-              {agent.role}
-            </span>
+            <RoleBadge key={agent.role} role={agent.role} />
           ))}
-        </div>
-      </header>
-      <main className="app-main">
+        </HeaderBadges>
+      </Header>
+      <MainContent>
         <MessageList messages={messages} />
         <MessageInput role={role} onSend={handleSend} />
-      </main>
-    </div>
+      </MainContent>
+    </AppShell>
   );
 }
