@@ -57,7 +57,7 @@ export default function App() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://localhost:${DEFAULT_PORT}`);
+    const ws = new WebSocket(`ws://localhost:${DEFAULT_PORT}/ws`);
     wsRef.current = ws;
 
     ws.onopen = () => {
