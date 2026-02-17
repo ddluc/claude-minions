@@ -8,8 +8,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 
 
-export function loadBaseTemplate() { 
+export function loadBaseTemplate() {
   return fs.readFileSync(path.join(TEMPLATES_DIR, `core.md`), 'utf-8');
+}
+
+export function loadConnectTemplate() {
+  return fs.readFileSync(path.join(TEMPLATES_DIR, `connect.md`), 'utf-8');
 }
 
 export function loadRoleTemplate(role: AgentRole): string {
@@ -64,6 +68,17 @@ export function buildAgentPrompt(
   if (instructions.project) {
     content += `\n${instructions.project}\n`;
   }
+
+  return content;
+}
+
+export function buildConnectFile(role: AgentRole, repos: Repo[] = []): string {
+  let content = loadConnectTemplate();
+
+  content = content.replaceAll('{{ROLE}}', role);
+
+  const repoLines = repos.map(r => `  - \`${r.path}/\``).join('\n');
+  content = content.replace('{{REPOS}}', repoLines);
 
   return content;
 }
