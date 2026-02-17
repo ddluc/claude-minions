@@ -27,7 +27,7 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 export default function App() {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [settings] = useState<Settings>(DEFAULT_SETTINGS);
   const [role, setRole] = useState<AgentRole | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [agents, setAgents] = useState<Map<string, AgentState>>(new Map());
