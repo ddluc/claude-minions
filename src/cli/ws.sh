@@ -21,10 +21,10 @@ _ws_listen() {
   # This means 'break' returns control immediately without waiting for websocat
   exec 3< <(websocat "${WS_URL}" < "${fifo}" 2>/dev/null)
 
-  # Read messages from FD 3
+  # Read messages from FD 3, skip system messages and own messages
   local msg
   while IFS= read -r -u3 msg; do
-    if ! echo "${msg}" | grep -q '"type":"system"'; then
+    if ! echo "${msg}" | grep -q '"type":"system"' && ! echo "${msg}" | grep -q "\"from\":\"${role}\""; then
       echo "${msg}" >> "${CONVERSATION_LOG}"
       break
     fi
