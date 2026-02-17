@@ -18,14 +18,8 @@ export class MessageRouter {
       // Validate message
       const message = validateMessage(rawMessage);
 
-      // Route based on message type and 'to' field
-      if (message.type === 'chat' && message.to) {
-        // Unicast to specific agent
-        this.sendToAgent(message.to, message);
-      } else {
-        // Broadcast to all agents except sender
-        this.broadcast(message, senderId);
-      }
+      // Broadcast to all connected agents except sender
+      this.broadcast(message, senderId);
     } catch (error) {
       console.error('Invalid message:', error);
       // Send error back to sender
@@ -37,33 +31,6 @@ export class MessageRouter {
           timestamp: new Date().toISOString(),
         }));
       }
-    }
-  }
-
-  private sendToAgent(agentRole: string, message: Message) {
-    // Check if target is a valid agent role
-    const isAgentRole = VALID_ROLES.includes(agentRole as any);
-
-    if (isAgentRole) {
-      // Send to daemon for agent roles
-      for (const [id, conn] of this.clients.entries()) {
-        if (conn.role === 'daemon' && conn.ws.readyState === 1) { // 1 = OPEN
-          conn.ws.send(JSON.stringify(message));
-          console.log(`Message sent to daemon for ${agentRole} role`);
-          return;
-        }
-      }
-      console.warn(`Daemon not connected - cannot route message to ${agentRole}`);
-    } else {
-      // For non-agent targets (like test clients), find direct connection
-      for (const [id, conn] of this.clients.entries()) {
-        if (conn.role === agentRole && conn.ws.readyState === 1) { // 1 = OPEN
-          conn.ws.send(JSON.stringify(message));
-          console.log(`Message sent directly to ${agentRole}`);
-          return;
-        }
-      }
-      console.warn(`Client '${agentRole}' not found or not connected`);
     }
   }
 

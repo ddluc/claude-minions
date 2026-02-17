@@ -5,7 +5,6 @@ import { server } from './commands/server.js';
 import { start } from './commands/start.js';
 import { stop } from './commands/stop.js';
 import { status } from './commands/status.js';
-import { daemon } from './commands/daemon.js';
 import { up } from './commands/up.js';
 import { down } from './commands/down.js';
 import { VALID_ROLES } from '../../core/constants.js';
@@ -28,18 +27,13 @@ program
   .action(server);
 
 program
-  .command('daemon')
-  .description('Start the daemon for autonomous agent communication')
-  .action(daemon);
-
-program
   .command('up')
-  .description('Start server and daemon')
+  .description('Start server and minion sessions')
   .action(up);
 
 program
   .command('down')
-  .description('Stop server and daemon')
+  .description('Stop server and minion sessions')
   .action(down);
 
 program

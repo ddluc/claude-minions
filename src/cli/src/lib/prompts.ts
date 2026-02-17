@@ -1,34 +1,38 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole, RoleConfig, Repo } from '../../../core/types.js';
 import { parseGitUrl } from './git.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 
-export function generateConnectMd(port: number = DEFAULT_PORT): string {
-  return `
-# Minions Server Connection
 
-Server URL: ws://localhost:${port}
-API URL: http://localhost:${port}
-
-## EC2 Setup
-When running on EC2, update to:
-Server URL: wss://<your-ec2-host>:${port}
-API URL: https://<your-ec2-host>:${port}
-`;
+export function loadBaseTemplate() { 
+  return fs.readFileSync(path.join(TEMPLATES_DIR, `core.md`), 'utf-8');
 }
 
 export function loadRoleTemplate(role: AgentRole): string {
   return fs.readFileSync(path.join(TEMPLATES_DIR, `${role}.md`), 'utf-8');
 }
 
-export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false): string {
-  const base = loadRoleTemplate(role);
-  let content = base;
+export function buildAgentPrompt(
+  role: AgentRole, 
+  config: RoleConfig, 
+  workspaceRoot: string, 
+  repos: Repo[] = [], 
+  hasSshKey = false, 
+): string {
+
+  // Setup the inst
+  const instructions = { 
+    core: loadBaseTemplate(), 
+    role: loadRoleTemplate(role),
+    project: '',
+  }
+
+  let content = instructions.core; 
+  content += `\n ${instructions.role} \n`;
 
   // Inject SSH authentication info if SSH key is configured
   if (hasSshKey) {
@@ -50,16 +54,15 @@ export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot
   }
 
   // Append project-specific instructions
-  let projectInstructions = '';
   if (config.systemPromptFile) {
     const filePath = path.resolve(workspaceRoot, config.systemPromptFile);
-    projectInstructions = fs.readFileSync(filePath, 'utf-8');
+    instructions.project = fs.readFileSync(filePath, 'utf-8');
   } else if (config.systemPrompt) {
-    projectInstructions = config.systemPrompt;
+    instructions.project = config.systemPrompt;
   }
 
-  if (projectInstructions) {
-    content += '\n' + projectInstructions + '\n';
+  if (instructions.project) {
+    content += `\n${instructions.project}\n`;
   }
 
   return content;
