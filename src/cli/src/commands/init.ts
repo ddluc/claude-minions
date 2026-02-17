@@ -26,17 +26,22 @@ export async function init(): Promise<void> {
     console.log(chalk.green('\n  Created minions.json'));
   }
 
-  // Create .minions/ directory structure and CLAUDE.md templates
+  // Create .minions/ directory structure and copy scripts into each role dir
   const roles = Object.keys(settings.roles) as AgentRole[];
+  const wsShSource = new URL('../../ws.sh', import.meta.url).pathname;
   for (const role of roles) {
-    fs.ensureDirSync(path.join(minionsDir, role));
+    const roleDir = path.join(minionsDir, role);
+    fs.ensureDirSync(roleDir);
     fs.writeFileSync(
-      path.join(minionsDir, role, 'CLAUDE.md'),
+      path.join(roleDir, 'CLAUDE.md'),
       buildAgentPrompt(role, settings.roles[role] || {}, cwd, settings.repos)
     );
+    fs.copyFileSync(wsShSource, path.join(roleDir, 'ws.sh'));
+    fs.chmodSync(path.join(roleDir, 'ws.sh'), 0o755);
   }
   console.log(chalk.green(`  Created .minions/ directories for: ${roles.join(', ')}`));
   console.log(chalk.green('  Created CLAUDE.md templates for each role'));
+  console.log(chalk.green('  Copied ws.sh into each role directory'));
 
   // Create .env template if it doesn't exist
   const envPath = path.join(cwd, '.env');

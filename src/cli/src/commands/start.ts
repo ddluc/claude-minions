@@ -99,13 +99,6 @@ export async function start(role: string): Promise<void> {
     }
   }
 
-  // Copy ws.sh into the role directory and make it executable
-  const wsShTemplate = new URL('../templates/ws.sh', import.meta.url).pathname;
-  const wsShDest = path.join(roleDir, 'ws.sh');
-  fs.copyFileSync(wsShTemplate, wsShDest);
-  fs.chmodSync(wsShDest, 0o755);
-  console.log(chalk.dim(`Copied ws.sh into .minions/${role}/`));
-
   // Regenerate CLAUDE.md to ensure latest information based on settings
   fs.writeFileSync(
     path.join(roleDir, 'CLAUDE.md'),
