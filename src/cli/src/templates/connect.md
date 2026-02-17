@@ -37,3 +37,13 @@ After receiving and processing every message:
    ```
 
 **CRITICAL: The listener must ALWAYS be running. Run it as a foreground call (not background). After every send, restart it immediately. This is your primary loop.**
+
+## Step 4: Handle interactive interruptions
+
+If the user sends you a message directly via the interactive prompt (outside the WebSocket chat), your listener will be interrupted. **After processing the user's interactive message, you MUST immediately restart the listener:**
+
+```bash
+./ws.sh listen {{ROLE}}
+```
+
+This applies every time — whether the user interrupts to ask a question, give feedback, or cancel a tool call. Your default action after handling any interactive prompt should always be to reconnect to the WebSocket server.
