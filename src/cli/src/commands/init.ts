@@ -5,7 +5,7 @@ import path from 'path';
 import { VALID_ROLES } from '../../../core/constants.js';
 import type { AgentRole, Repo, RoleConfig, Settings } from '../../../core/types.js';
 import { loadSettings } from '../lib/config.js';
-import { buildAgentPrompt } from '../lib/prompts.js';
+import { buildAgentPrompt, buildConnectFile } from '../lib/prompts.js';
 
 export async function init(): Promise<void> {
   const cwd = process.cwd();
@@ -35,6 +35,10 @@ export async function init(): Promise<void> {
     fs.writeFileSync(
       path.join(roleDir, 'CLAUDE.md'),
       buildAgentPrompt(role, settings.roles[role] || {}, cwd, settings.repos)
+    );
+    fs.writeFileSync(
+      path.join(roleDir, 'connect.md'),
+      buildConnectFile(role, settings.repos)
     );
     fs.copyFileSync(wsShSource, path.join(roleDir, 'ws.sh'));
     fs.chmodSync(path.join(roleDir, 'ws.sh'), 0o755);

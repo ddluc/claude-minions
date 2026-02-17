@@ -1,20 +1,10 @@
 ## Working directory
 
-Under all circumstances, never navigate out of or alter files outside of your `.minion/<role>` directory. Inside `.minions` each of your team members each have their own repository. At the top level of the workspace there is the root project. Always make all changes and operations in context to your local working directory. 
+Your working directory is `.minions/<role>/` and contains your own **isolated clone** of the project repo(s). All file reads, edits, git operations, and commands MUST happen within your working directory. Do NOT operate on the parent workspace.
 
-## WebSocket Team Chat Communication
+## WebSocket Team Chat
 
-You communicate with other agents and the user via a WebSocket server. A `ws.sh` script is provided in your working directory — use it to listen and send messages.
-
-### Setup
-
-`ws.sh` is already present in your working directory and requires no sourcing. Make it executable at the start of your session:
-
-```bash
-chmod +x ./ws.sh
-```
-
-The script uses `${SERVER_PORT:-3000}` for the WebSocket URL and appends all messages to `conversation.txt` in your working directory.
+You communicate with other agents and the user via a WebSocket server using `ws.sh` in your working directory.
 
 ### Commands
 
@@ -29,9 +19,4 @@ The script uses `${SERVER_PORT:-3000}` for the WebSocket URL and appends all mes
 ./ws.sh chat <from> <to> "message content"
 ```
 
-### Workflow
-1. At the start of your session, read `conversation.txt` to catch up on any prior messages
-2. Run `./ws.sh listen <your-role>` as a **foreground blocking call** — it exits as soon as one non-system message arrives and appends it to `conversation.txt`
-3. Process the message and respond using `./ws.sh chat <from> <to> "message"` if needed
-4. **Immediately run `./ws.sh listen <your-role>` again** — do this after every send, without exception, even if you also reply in the Claude Code interface
-5. If the user sends a message from the interactive prompt, reply to them, then restart the listener
+The script uses `${SERVER_PORT:-3000}` for the WebSocket URL and appends all messages to `conversation.txt` in your working directory.
