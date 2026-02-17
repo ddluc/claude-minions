@@ -9,10 +9,16 @@ export const RepoSchema = z.object({
 
 export const ClaudeModelSchema = z.enum(['opus', 'sonnet', 'haiku']);
 
+export const PermissionsSchema = z.object({
+  allow: z.array(z.string()).optional(),
+  deny: z.array(z.string()).optional(),
+});
+
 export const RoleConfigSchema = z.object({
   systemPrompt: z.string().optional(),
   systemPromptFile: z.string().optional(),
   model: ClaudeModelSchema.optional(),
+  permissions: PermissionsSchema.optional(),
 }).refine(
   data => !(data.systemPrompt && data.systemPromptFile),
   { message: 'Cannot specify both systemPrompt and systemPromptFile' }
@@ -23,4 +29,5 @@ export const SettingsSchema = z.object({
   repos: z.array(RepoSchema),
   roles: z.record(z.enum(VALID_ROLES), RoleConfigSchema).default({}),
   ssh: z.string().optional(),
+  permissions: PermissionsSchema.optional(),
 });

@@ -7,6 +7,7 @@ import type { AgentRole } from '../../../core/types.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 import { buildAgentPrompt } from '../lib/prompts.js';
+import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js';
 
 export async function start(role: string): Promise<void> {
   // Validate role
@@ -110,14 +111,20 @@ export async function start(role: string): Promise<void> {
   fs.writeFileSync(pidFile, String(process.pid));
   process.on('exit', () => { try { fs.removeSync(pidFile); } catch {} });
 
+  // Resolve and write permissions to .claude/settings.local.json
+  const roleConfig = settings.roles[agentRole];
+  if (settings.mode !== 'yolo') {
+    const resolved = resolvePermissions(settings.permissions, roleConfig?.permissions);
+    if (resolved.allow || resolved.deny) {
+      writePermissionsFile(roleDir, resolved);
+    }
+  }
+
   // Build claude CLI arguments
   const claudeArgs: string[] = [];
   if (settings.mode === 'yolo') {
     claudeArgs.push('--dangerously-skip-permissions');
   }
-
-  // Pass model configuration if specified
-  const roleConfig = settings.roles[agentRole];
   if (roleConfig?.model) {
     claudeArgs.push('--model', roleConfig.model);
   }
