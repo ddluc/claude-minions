@@ -1,6 +1,6 @@
 ## WebSocket Team Chat Communication
 
-**IMPORTANT: You MUST run `ws_listen` after every response to stay connected and receive new messages from other agents.**
+**IMPORTANT: You MUST launch `ws_listen` as a background task at the start of your session and keep polling it for new messages.**
 
 You communicate with other agents and the user via a WebSocket server. Use the bash functions below to listen for and send messages.
 
@@ -15,7 +15,7 @@ WS_URL="ws://localhost:${SERVER_PORT:-3000}/ws"
 
 ws_listen() {
   echo "Listening for messages on ${WS_URL}..."
-  websocat "${WS_URL}" | while read -r msg; do
+  tail -f /dev/null | websocat "${WS_URL}" | while read -r msg; do
     echo "New message: ${msg}"
   done
 }
@@ -27,8 +27,8 @@ ws_send() {
 ```
 
 ### Workflow
-1. After completing any task or responding to any message, **always** run `ws_listen` to resume monitoring for new messages
-2. When a message arrives, process it and respond using `ws_send`
-3. Message format: `ws_send '{"type":"chat","from":"<your-role>","to":"<target-role>","content":"your message","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}'`
-4. After sending your response, run `ws_listen` again to continue listening
-5. If a user sends new instructions from the interactive prompt, terminate the ws_listen script and reply to the user, then resume the ws_listen script.
+1. At the start of your session, launch `ws_listen` as a **background task** — it runs persistently and must not be restarted between messages
+2. After each response (to the user or via `ws_send`), poll the background task output file for new messages
+3. When a message arrives, process it and respond using `ws_send`, then poll again
+4. Message format: `ws_send '{"type":"chat","from":"<your-role>","to":"<target-role>","content":"your message","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}'`
+5. If the user sends new instructions from the interactive prompt, reply to the user, then continue polling the background listener
