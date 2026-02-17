@@ -5,7 +5,7 @@ import path from 'path';
 import { VALID_ROLES } from '../../../core/constants.js';
 import type { AgentRole, Repo, RoleConfig, Settings } from '../../../core/types.js';
 import { loadSettings } from '../lib/config.js';
-import { generateConnectMd, buildClaudeMd } from '../lib/templates.js';
+import { buildAgentPrompt } from '../lib/prompts.js';
 
 export async function init(): Promise<void> {
   const cwd = process.cwd();
@@ -32,15 +32,11 @@ export async function init(): Promise<void> {
     fs.ensureDirSync(path.join(minionsDir, role));
     fs.writeFileSync(
       path.join(minionsDir, role, 'CLAUDE.md'),
-      buildClaudeMd(role, settings.roles[role] || {}, cwd, settings.repos)
+      buildAgentPrompt(role, settings.roles[role] || {}, cwd, settings.repos)
     );
   }
   console.log(chalk.green(`  Created .minions/ directories for: ${roles.join(', ')}`));
   console.log(chalk.green('  Created CLAUDE.md templates for each role'));
-
-  // Create connect.md
-  fs.writeFileSync(path.join(minionsDir, 'connect.md'), generateConnectMd());
-  console.log(chalk.green('  Created .minions/connect.md'));
 
   // Create .env template if it doesn't exist
   const envPath = path.join(cwd, '.env');

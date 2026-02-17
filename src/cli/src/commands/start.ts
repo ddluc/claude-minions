@@ -6,7 +6,7 @@ import { VALID_ROLES } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
-import { buildClaudeMd } from '../lib/templates.js';
+import { buildAgentPrompt } from '../lib/prompts.js';
 
 export async function start(role: string): Promise<void> {
   // Validate role
@@ -99,10 +99,10 @@ export async function start(role: string): Promise<void> {
     }
   }
 
-  // Regenerate CLAUDE.md so template changes take effect
+  // Regenerate CLAUDE.md to ensure latest information based on settings
   fs.writeFileSync(
     path.join(roleDir, 'CLAUDE.md'),
-    buildClaudeMd(agentRole, settings.roles[agentRole] || {}, workspaceRoot, repos, !!sshKeyPath, settings.serverPort),
+    buildAgentPrompt(agentRole, settings.roles[agentRole] || {}, workspaceRoot, repos, !!sshKeyPath),
   );
 
   // Write PID file for status tracking

@@ -4,10 +4,7 @@ import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 
 export async function server(): Promise<void> {
   try {
-    const workspaceRoot = getWorkspaceRoot();
-    const settings = loadSettings(workspaceRoot);
-
-    const port = settings.serverPort || 3000;
+    const port = parseInt(process.env.SERVER_PORT ?? '3000');
     const srv = new MinionsServer();
 
     console.log(chalk.green(`Starting Minions server on port ${port}...`));

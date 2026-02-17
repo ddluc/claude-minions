@@ -6,7 +6,6 @@ import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 
 export async function up(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
-  const settings = loadSettings(workspaceRoot);
   const minionsDir = path.join(workspaceRoot, '.minions');
 
   fs.ensureDirSync(minionsDir);
@@ -29,8 +28,8 @@ export async function up(): Promise<void> {
   }
 
   // Start WebSocket server
-  const serverPort = settings.serverPort || 3000;
-  console.log(`Starting WebSocket server on port ${serverPort}...`);
+  const port = parseInt(process.env.SERVER_PORT ?? '3000');
+  console.log(`Starting WebSocket server on port ${port}...`);
 
   const binPath = path.join(workspaceRoot, 'bin', 'minions.ts');
   const serverProcess = spawn('tsx', [binPath, 'server'], {

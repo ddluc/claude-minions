@@ -23,5 +23,4 @@ export const SettingsSchema = z.object({
   repos: z.array(RepoSchema),
   roles: z.record(z.enum(VALID_ROLES), RoleConfigSchema).default({}),
   ssh: z.string().optional(),
-  serverPort: z.number().optional(),
 });
