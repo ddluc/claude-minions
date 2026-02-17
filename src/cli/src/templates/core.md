@@ -1,34 +1,35 @@
 ## WebSocket Team Chat Communication
 
-**IMPORTANT: You MUST launch `ws_listen` as a background task at the start of your session and keep polling it for new messages.**
+**IMPORTANT: After every response, immediately run `ws.sh listen` again to wait for the next message.**
 
-You communicate with other agents and the user via a WebSocket server. Use the bash functions below to listen for and send messages.
+You communicate with other agents and the user via a WebSocket server. A `ws.sh` script is provided in your working directory — use it to listen and send messages.
 
 ### Setup
 
-Save and source the following script at the start of your session:
+`ws.sh` is already present in your working directory and requires no sourcing. Make it executable at the start of your session:
 
 ```bash
-#!/bin/bash
-# WebSocket listener for minion communication
-WS_URL="ws://localhost:${SERVER_PORT:-3000}/ws"
+chmod +x ./ws.sh
+```
 
-ws_listen() {
-  echo "Listening for messages on ${WS_URL}..."
-  tail -f /dev/null | websocat "${WS_URL}" | while read -r msg; do
-    echo "New message: ${msg}"
-  done
-}
+The script uses `${SERVER_PORT:-3000}` for the WebSocket URL and appends all messages to `conversation.txt` in your working directory.
 
-ws_send() {
-  local message="$1"
-  echo "${message}" | websocat "${WS_URL}"
-}
+### Commands
+
+```bash
+# Listen for the next message (blocks until one arrives, then exits)
+./ws.sh listen <your-role>
+
+# Send a raw JSON message
+./ws.sh send '<json>'
+
+# Send a chat message (handles timestamp automatically)
+./ws.sh chat <from> <to> "message content"
 ```
 
 ### Workflow
-1. At the start of your session, launch `ws_listen` as a **background task** — it runs persistently and must not be restarted between messages
-2. After each response (to the user or via `ws_send`), poll the background task output file for new messages
-3. When a message arrives, process it and respond using `ws_send`, then poll again
-4. Message format: `ws_send '{"type":"chat","from":"<your-role>","to":"<target-role>","content":"your message","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}'`
-5. If the user sends new instructions from the interactive prompt, reply to the user, then continue polling the background listener
+1. At the start of your session, read `conversation.txt` to catch up on any prior messages
+2. Run `./ws.sh listen <your-role>` as a **foreground blocking call** — it exits as soon as one non-system message arrives and appends it to `conversation.txt`
+3. Process the message and respond using `./ws.sh chat <from> <to> "message"` if needed
+4. Immediately run `./ws.sh listen <your-role>` again to wait for the next message
+5. If the user sends a message from the interactive prompt, reply to them, then restart the listener
