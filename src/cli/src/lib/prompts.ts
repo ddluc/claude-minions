@@ -62,7 +62,7 @@ export function buildAgentPrompt(
   }
 
   if (instructions.project) {
-    content += `\n ${instructions.project} + '\n`;
+    content += `\n${instructions.project}\n`;
   }
 
   return content;
