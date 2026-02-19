@@ -5,42 +5,20 @@ import { spawnSync } from 'node:child_process';
 import WebSocket from 'ws';
 import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
-import type { DaemonControlMessage, SystemMessage } from '../../../core/messages.js';
+import type { DaemonControlMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 import { buildClaudeMd } from '../lib/templates.js';
 
 /**
- * Send a daemon_control message (pause/unpause) over a WebSocket connection.
- * Returns a promise that resolves once the message is sent, or rejects on error.
+ * Send a daemon_control message over a WebSocket connection.
  */
-function sendDaemonControl(
-  ws: WebSocket,
-  action: 'pause' | 'unpause',
-  role: string,
-): Promise<void> {
+function sendControl(ws: WebSocket, action: 'pause' | 'unpause', role: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const message: DaemonControlMessage = {
       type: 'daemon_control',
       action,
       role,
-      timestamp: new Date().toISOString(),
-    };
-    ws.send(JSON.stringify(message), (err) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
-}
-
-/**
- * Broadcast a system message to all connected clients.
- */
-function sendSystemMessage(ws: WebSocket, content: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const message: SystemMessage = {
-      type: 'system',
-      content,
       timestamp: new Date().toISOString(),
     };
     ws.send(JSON.stringify(message), (err) => {
@@ -188,51 +166,25 @@ export async function tap(role: string): Promise<void> {
     console.log(chalk.cyan('Starting fresh session'));
   }
 
-  // Connect to server and pause daemon (best effort)
-  let ws: WebSocket | null = null;
+  // Pause chat via server
   const serverPort = settings.serverPort || DEFAULT_PORT;
   const serverUrl = `ws://localhost:${serverPort}/ws`;
 
   console.log(chalk.dim(`Connecting to server at ${serverUrl}...`));
-  ws = await connectWebSocket(serverUrl);
+  const ws = await connectWebSocket(serverUrl);
 
   if (ws) {
     try {
-      console.log(chalk.yellow(`Pausing daemon for ${role}...`));
-      await sendDaemonControl(ws, 'pause', role);
-      await sendSystemMessage(ws, `@${role} is now in interactive mode — messages will be queued until the session ends`);
+      console.log(chalk.yellow(`Pausing chat...`));
+      await sendControl(ws, 'pause', role);
     } catch (err) {
-      console.log(chalk.yellow(`Warning: Could not pause daemon — ${err}`));
+      console.log(chalk.yellow(`Warning: Could not pause chat — ${err}`));
     }
+    // Close the initial connection — we'll open a fresh one on exit
+    ws.close();
   } else {
-    console.log(chalk.dim('Daemon not running — skipping pause/unpause'));
+    console.log(chalk.dim('Server not running — skipping pause'));
   }
-
-  // Ensure cleanup: open a fresh WS connection to unpause daemon.
-  // The original connection may be stale after spawnSync blocks the event loop.
-  const cleanup = async () => {
-    // Close the original connection if still open
-    if (ws) {
-      try { ws.close(); } catch {}
-    }
-
-    // Open a fresh connection for the unpause
-    const freshWs = await connectWebSocket(serverUrl);
-    if (freshWs) {
-      try {
-        console.log(chalk.yellow(`\nResuming daemon for ${role}...`));
-        await sendDaemonControl(freshWs, 'unpause', role);
-        await sendSystemMessage(freshWs, `@${role} has returned from interactive mode — resuming`);
-        // Brief delay to let messages flush
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      } catch {
-        // Best effort
-      }
-      freshWs.close();
-    } else {
-      console.log(chalk.dim('Could not reconnect to server — daemon may still be paused'));
-    }
-  };
 
   // Build claude CLI arguments
   const claudeArgs: string[] = [];
@@ -262,8 +214,20 @@ export async function tap(role: string): Promise<void> {
     env: { ...process.env, ...envVars },
   });
 
-  // Unpause daemon after user exits
-  await cleanup();
+  // Resume chat via fresh WS connection
+  const freshWs = await connectWebSocket(serverUrl);
+  if (freshWs) {
+    try {
+      console.log(chalk.yellow(`Resuming chat...`));
+      await sendControl(freshWs, 'unpause', role);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    } catch {
+      // Best effort
+    }
+    freshWs.close();
+  } else {
+    console.log(chalk.dim('Could not reconnect to server — chat may still be paused'));
+  }
 
   if (result.error) {
     console.error(chalk.red('Failed to start claude CLI'));
@@ -272,6 +236,5 @@ export async function tap(role: string): Promise<void> {
     process.exit(1);
   }
 
-  console.log(chalk.dim(`Daemon resumed for ${role}`));
   process.exit(result.status ?? 0);
 }
