@@ -65,6 +65,8 @@ export class MessageRouter {
         if (conn.role === 'daemon' && conn.ws.readyState === 1) { // 1 = OPEN
           conn.ws.send(JSON.stringify(message));
           console.log(`Message sent to daemon for ${agentRole} role`);
+          // Also broadcast to all other clients for visibility
+          this.broadcast(message, id);
           return;
         }
       }
@@ -75,6 +77,8 @@ export class MessageRouter {
         if (conn.role === agentRole && conn.ws.readyState === 1) { // 1 = OPEN
           conn.ws.send(JSON.stringify(message));
           console.log(`Message sent directly to ${agentRole}`);
+          // Also broadcast to all other clients for visibility
+          this.broadcast(message, id);
           return;
         }
       }
