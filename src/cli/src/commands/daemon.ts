@@ -6,6 +6,25 @@ import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import type { Message, ChatMessage } from '../../../core/messages.js';
 import type { AgentRole } from '../../../core/types.js';
 
+const MAX_ROUTING_DEPTH = 5;
+const ROLE_MENTION_REGEX = /@(pm|cao|fe-engineer|be-engineer|qa)\b/g;
+
+interface QueuedMessage {
+  msg: ChatMessage;
+  depth: number;
+}
+
+function parseMentions(content: string): Set<string> {
+  const mentions = new Set<string>();
+  let match;
+  while ((match = ROLE_MENTION_REGEX.exec(content)) !== null) {
+    mentions.add(match[1]);
+  }
+  // Reset regex lastIndex for next call
+  ROLE_MENTION_REGEX.lastIndex = 0;
+  return mentions;
+}
+
 // Setup logging to file
 function setupDaemonLogging(logFile: string) {
   const logStream = fs.createWriteStream(logFile, { flags: 'a' });
@@ -43,43 +62,57 @@ export async function daemon(): Promise<void> {
   wsClient.connect();
 
   // Message queue per role (for concurrent message handling)
-  const messageQueues = new Map<AgentRole, ChatMessage[]>();
+  const messageQueues = new Map<AgentRole, QueuedMessage[]>();
   const processingFlags = new Map<AgentRole, boolean>();
+
+  function queueForRole(role: AgentRole, msg: ChatMessage, depth: number) {
+    if (!settings.roles[role]) {
+      console.log(`Warning: Skipping disabled role: ${role}`);
+      return;
+    }
+
+    if (!messageQueues.has(role)) {
+      messageQueues.set(role, []);
+      processingFlags.set(role, false);
+    }
+    messageQueues.get(role)!.push({ msg, depth });
+    processRoleQueue(role);
+  }
 
   // Handle incoming messages
   wsClient.on('message', async (msg: Message) => {
     if (msg.type !== 'chat') return;
 
-    const targetRole = msg.to as AgentRole;
+    // Parse @mentions to determine which roles should respond
+    const mentions = parseMentions(msg.content);
 
-    if (!settings.roles[targetRole]) {
-      console.log(`Warning: Received message for disabled role: ${targetRole}`);
+    if (mentions.size === 0) {
+      console.log(`No @mentions in message from ${msg.from} — skipping`);
       return;
     }
 
-    console.log(`[${targetRole}] Received message from ${msg.from}`);
-
-    // Add to role-specific queue
-    if (!messageQueues.has(targetRole)) {
-      messageQueues.set(targetRole, []);
-      processingFlags.set(targetRole, false);
+    for (const mentionedRole of mentions) {
+      const role = mentionedRole as AgentRole;
+      console.log(`[${role}] Mentioned by ${msg.from}`);
+      queueForRole(role, msg, 0);
     }
-    messageQueues.get(targetRole)!.push(msg);
-
-    // Process queue for this role
-    processRoleQueue(targetRole);
   });
 
   async function processRoleQueue(role: AgentRole): Promise<void> {
     if (processingFlags.get(role)) return; // Already processing
 
-    const queue = messageQueues.get(role)!;
-    if (queue.length === 0) return;
+    const queue = messageQueues.get(role);
+    if (!queue || queue.length === 0) return;
 
     processingFlags.set(role, true);
 
     while (queue.length > 0) {
-      const msg = queue.shift()!;
+      const { msg, depth } = queue.shift()!;
+
+      if (depth >= MAX_ROUTING_DEPTH) {
+        console.log(`[${role}] Max routing depth (${MAX_ROUTING_DEPTH}) reached — dropping message`);
+        continue;
+      }
 
       try {
         const roleDir = path.join(workspaceRoot, '.minions', role);
@@ -87,25 +120,35 @@ export async function daemon(): Promise<void> {
         // Build prompt
         const prompt = `Message from ${msg.from}: ${msg.content}`;
 
-        console.log(`[${role}] Processing message (${queue.length} remaining in queue)`);
+        console.log(`[${role}] Processing message (depth=${depth}, ${queue.length} remaining in queue)`);
 
         // Get model from settings
         const model = settings.roles[role]?.model || 'sonnet';
 
-        // Spawn Claude in print mode (NO session ID yet)
-        const claudeArgs = [
-          '-p',
-          '--dangerously-skip-permissions',
-          '--model', model,
-          prompt
-        ];
+        // Load session ID for conversation continuity
+        const sessionIdPath = path.join(roleDir, '.session-id');
+        let sessionId: string | null = null;
+        if (fs.existsSync(sessionIdPath)) {
+          sessionId = fs.readFileSync(sessionIdPath, 'utf-8').trim();
+        }
+
+        // Build Claude args with session persistence
+        const claudeArgs = ['-p', '--output-format', 'json', '--model', model];
+        if (settings.mode === 'yolo') {
+          claudeArgs.push('--dangerously-skip-permissions');
+        }
+        if (sessionId) {
+          claudeArgs.push('--resume', sessionId);
+          console.log(`[${role}] Resuming session ${sessionId}`);
+        }
+        claudeArgs.push(prompt);
 
         const result = spawnSync('claude', claudeArgs, {
           cwd: roleDir,
           encoding: 'utf-8',
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer
           env: {
-            ...process.env, // Pass through all environment variables (including GITHUB_TOKEN, GH_TOKEN, PATH, etc.)
+            ...process.env,
           },
         });
 
@@ -115,7 +158,6 @@ export async function daemon(): Promise<void> {
           wsClient.sendMessage({
             type: 'chat',
             from: role,
-            to: msg.from,
             content: `❌ ${errorMsg}`,
             timestamp: new Date().toISOString(),
           });
@@ -130,26 +172,51 @@ export async function daemon(): Promise<void> {
           wsClient.sendMessage({
             type: 'chat',
             from: role,
-            to: msg.from,
             content: `❌ ${errorMsg}`,
             timestamp: new Date().toISOString(),
           });
           continue;
         }
 
-        const response = result.stdout.trim();
+        // Parse JSON response with fallback to plain text
+        let response: string;
+        let newSessionId: string | null = null;
+
+        try {
+          const parsed = JSON.parse(result.stdout);
+          response = parsed.result || '';
+          newSessionId = parsed.session_id || null;
+        } catch {
+          response = result.stdout.trim();
+        }
+
+        // Persist session ID for future conversation continuity
+        if (newSessionId) {
+          fs.writeFileSync(sessionIdPath, newSessionId);
+          console.log(`[${role}] Session ID captured: ${newSessionId}`);
+        }
+
         console.log(`[${role}] Response generated (${response.length} chars)`);
 
-        // Send response back (NO conversation persistence yet)
-        wsClient.sendMessage({
+        // Send response to group chat
+        const responseMsg: ChatMessage = {
           type: 'chat',
           from: role,
-          to: msg.from,
           content: response,
           timestamp: new Date().toISOString(),
-        });
+        };
+        wsClient.sendMessage(responseMsg);
 
-        console.log(`[${role}] Response sent to ${msg.from}`);
+        // Route response to @mentioned roles (agent-to-agent communication)
+        const responseMentions = parseMentions(response);
+        for (const mentionedRole of responseMentions) {
+          const targetRole = mentionedRole as AgentRole;
+          if (targetRole === role) continue; // Don't self-route
+          console.log(`[${role}] Response @mentions ${targetRole} — routing (depth=${depth + 1})`);
+          queueForRole(targetRole, responseMsg, depth + 1);
+        }
+
+        console.log(`[${role}] Response sent`);
 
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -157,7 +224,6 @@ export async function daemon(): Promise<void> {
         wsClient.sendMessage({
           type: 'chat',
           from: role,
-          to: msg.from,
           content: `❌ Unexpected error: ${errorMsg}`,
           timestamp: new Date().toISOString(),
         });
