@@ -191,37 +191,46 @@ export async function tap(role: string): Promise<void> {
   // Connect to server and pause daemon (best effort)
   let ws: WebSocket | null = null;
   const serverPort = settings.serverPort || DEFAULT_PORT;
-  {
-    const serverUrl = `ws://localhost:${serverPort}/ws`;
-    console.log(chalk.dim(`Connecting to server at ${serverUrl}...`));
-    ws = await connectWebSocket(serverUrl);
+  const serverUrl = `ws://localhost:${serverPort}/ws`;
 
-    if (ws) {
-      try {
-        console.log(chalk.yellow(`Pausing daemon for ${role}...`));
-        await sendDaemonControl(ws, 'pause', role);
-        await sendSystemMessage(ws, `@${role} is now in interactive mode — messages will be queued until the session ends`);
-      } catch (err) {
-        console.log(chalk.yellow(`Warning: Could not pause daemon — ${err}`));
-      }
-    } else {
-      console.log(chalk.dim('Daemon not running — skipping pause/unpause'));
+  console.log(chalk.dim(`Connecting to server at ${serverUrl}...`));
+  ws = await connectWebSocket(serverUrl);
+
+  if (ws) {
+    try {
+      console.log(chalk.yellow(`Pausing daemon for ${role}...`));
+      await sendDaemonControl(ws, 'pause', role);
+      await sendSystemMessage(ws, `@${role} is now in interactive mode — messages will be queued until the session ends`);
+    } catch (err) {
+      console.log(chalk.yellow(`Warning: Could not pause daemon — ${err}`));
     }
+  } else {
+    console.log(chalk.dim('Daemon not running — skipping pause/unpause'));
   }
 
-  // Ensure cleanup: unpause daemon and close WS on exit
+  // Ensure cleanup: open a fresh WS connection to unpause daemon.
+  // The original connection may be stale after spawnSync blocks the event loop.
   const cleanup = async () => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    // Close the original connection if still open
+    if (ws) {
+      try { ws.close(); } catch {}
+    }
+
+    // Open a fresh connection for the unpause
+    const freshWs = await connectWebSocket(serverUrl);
+    if (freshWs) {
       try {
         console.log(chalk.yellow(`\nResuming daemon for ${role}...`));
-        await sendDaemonControl(ws, 'unpause', role);
-        await sendSystemMessage(ws, `@${role} has returned from interactive mode — resuming`);
+        await sendDaemonControl(freshWs, 'unpause', role);
+        await sendSystemMessage(freshWs, `@${role} has returned from interactive mode — resuming`);
         // Brief delay to let messages flush
         await new Promise((resolve) => setTimeout(resolve, 200));
       } catch {
         // Best effort
       }
-      ws.close();
+      freshWs.close();
+    } else {
+      console.log(chalk.dim('Could not reconnect to server — daemon may still be paused'));
     }
   };
 
