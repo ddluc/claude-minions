@@ -57,11 +57,10 @@ export class AgentWebSocketClient {
     }
   }
 
-  sendChat(to: string | undefined, content: string) {
+  sendChat(content: string) {
     this.sendMessage({
       type: 'chat',
       from: this.role,
-      to,
       content,
       timestamp: new Date().toISOString(),
     });

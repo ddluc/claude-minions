@@ -1,9 +1,9 @@
-// Pure TypeScript message types - no dependencies
+// Pure TypeScript message types
+import type { AgentStatus } from './types.js';
 
 export interface ChatMessage {
   type: 'chat';
   from: string;
-  to?: string;
   content: string;
   timestamp: string;
 }
@@ -11,7 +11,7 @@ export interface ChatMessage {
 export interface AgentStatusMessage {
   type: 'agent_status';
   role: string;
-  status: 'online' | 'offline' | 'working';
+  status: AgentStatus;
   currentBranch?: string;
   timestamp: string;
 }
@@ -37,9 +37,17 @@ export interface SystemMessage {
   timestamp: string;
 }
 
+export interface DaemonControlMessage {
+  type: 'daemon_control';
+  action: 'pause' | 'unpause';
+  role: string;
+  timestamp: string;
+}
+
 export type Message =
   | ChatMessage
   | AgentStatusMessage
   | TaskCreatedMessage
   | PRCreatedMessage
-  | SystemMessage;
+  | SystemMessage
+  | DaemonControlMessage;
