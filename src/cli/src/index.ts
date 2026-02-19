@@ -6,6 +6,7 @@ import { start } from './commands/start.js';
 import { stop } from './commands/stop.js';
 import { status } from './commands/status.js';
 import { daemon } from './commands/daemon.js';
+import { chat } from './commands/chat.js';
 import { up } from './commands/up.js';
 import { down } from './commands/down.js';
 import { VALID_ROLES } from '../../core/constants.js';
@@ -31,6 +32,11 @@ program
   .command('daemon')
   .description('Start the daemon for autonomous agent communication')
   .action(daemon);
+
+program
+  .command('chat')
+  .description('Open interactive chat with minions')
+  .action(chat);
 
 program
   .command('up')
