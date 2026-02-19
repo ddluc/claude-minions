@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { spawnSync } from 'node:child_process';
 import WebSocket from 'ws';
-import { VALID_ROLES } from '../../../core/constants.js';
+import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
 import type { DaemonControlMessage, SystemMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
@@ -190,8 +190,9 @@ export async function tap(role: string): Promise<void> {
 
   // Connect to server and pause daemon (best effort)
   let ws: WebSocket | null = null;
-  if (settings.serverPort) {
-    const serverUrl = `ws://localhost:${settings.serverPort}/ws`;
+  const serverPort = settings.serverPort || DEFAULT_PORT;
+  {
+    const serverUrl = `ws://localhost:${serverPort}/ws`;
     console.log(chalk.dim(`Connecting to server at ${serverUrl}...`));
     ws = await connectWebSocket(serverUrl);
 
