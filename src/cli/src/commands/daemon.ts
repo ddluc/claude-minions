@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import { spawnSync } from 'child_process';
 import { DaemonWebSocketClient } from '../agent/DaemonWebSocketClient.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
-import type { Message, ChatMessage } from '../../../core/messages.js';
+import type { Message, ChatMessage, DaemonControlMessage } from '../../../core/messages.js';
 import type { AgentRole } from '../../../core/types.js';
 
 // Setup logging to file
@@ -45,9 +45,27 @@ export async function daemon(): Promise<void> {
   // Message queue per role (for concurrent message handling)
   const messageQueues = new Map<AgentRole, ChatMessage[]>();
   const processingFlags = new Map<AgentRole, boolean>();
+  const pausedRoles = new Set<AgentRole>();
 
   // Handle incoming messages
   wsClient.on('message', async (msg: Message) => {
+    // Handle daemon control messages (pause/unpause)
+    if (msg.type === 'daemon_control') {
+      const controlMsg = msg as DaemonControlMessage;
+      const role = controlMsg.role as AgentRole;
+
+      if (controlMsg.action === 'pause') {
+        pausedRoles.add(role);
+        console.log(`[${role}] Paused`);
+      } else if (controlMsg.action === 'unpause') {
+        pausedRoles.delete(role);
+        console.log(`[${role}] Unpaused`);
+        // Resume processing any queued messages
+        processRoleQueue(role);
+      }
+      return;
+    }
+
     if (msg.type !== 'chat') return;
 
     const targetRole = msg.to as AgentRole;
@@ -71,6 +89,7 @@ export async function daemon(): Promise<void> {
   });
 
   async function processRoleQueue(role: AgentRole): Promise<void> {
+    if (pausedRoles.has(role)) return; // Role is paused
     if (processingFlags.get(role)) return; // Already processing
 
     const queue = messageQueues.get(role)!;
@@ -92,20 +111,30 @@ export async function daemon(): Promise<void> {
         // Get model from settings
         const model = settings.roles[role]?.model || 'sonnet';
 
-        // Spawn Claude in print mode (NO session ID yet)
-        const claudeArgs = [
-          '-p',
-          '--dangerously-skip-permissions',
-          '--model', model,
-          prompt
-        ];
+        // Load session ID for conversation continuity
+        const sessionIdPath = path.join(roleDir, '.session-id');
+        let sessionId: string | null = null;
+        if (fs.existsSync(sessionIdPath)) {
+          sessionId = fs.readFileSync(sessionIdPath, 'utf-8').trim();
+        }
+
+        // Build Claude args with session persistence
+        const claudeArgs = ['-p', '--output-format', 'json', '--model', model];
+        if (settings.mode === 'yolo') {
+          claudeArgs.push('--dangerously-skip-permissions');
+        }
+        if (sessionId) {
+          claudeArgs.push('--resume', sessionId);
+          console.log(`[${role}] Resuming session ${sessionId}`);
+        }
+        claudeArgs.push(prompt);
 
         const result = spawnSync('claude', claudeArgs, {
           cwd: roleDir,
           encoding: 'utf-8',
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer
           env: {
-            ...process.env, // Pass through all environment variables (including GITHUB_TOKEN, GH_TOKEN, PATH, etc.)
+            ...process.env,
           },
         });
 
@@ -137,10 +166,26 @@ export async function daemon(): Promise<void> {
           continue;
         }
 
-        const response = result.stdout.trim();
+        // Parse JSON response with fallback to plain text
+        let response: string;
+        let newSessionId: string | null = null;
+
+        try {
+          const parsed = JSON.parse(result.stdout);
+          response = parsed.result || '';
+          newSessionId = parsed.session_id || null;
+        } catch {
+          response = result.stdout.trim();
+        }
+
+        // Persist session ID for future conversation continuity
+        if (newSessionId) {
+          fs.writeFileSync(sessionIdPath, newSessionId);
+          console.log(`[${role}] Session ID captured: ${newSessionId}`);
+        }
+
         console.log(`[${role}] Response generated (${response.length} chars)`);
 
-        // Send response back (NO conversation persistence yet)
         wsClient.sendMessage({
           type: 'chat',
           from: role,

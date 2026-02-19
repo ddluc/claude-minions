@@ -1,12 +1,13 @@
 import type { Message } from '../../core/messages.js';
 import type { WebSocket } from 'ws';
+import type { AgentStatus } from '../../core/types.js';
 import { validateMessage } from './schemas.js';
 import { VALID_ROLES } from '../../core/constants.js';
 
 export interface AgentConnection {
   ws: WebSocket;
   role: string;
-  status: 'online' | 'offline' | 'working';
+  status: AgentStatus;
   connectedAt: string;
 }
 
@@ -18,8 +19,11 @@ export class MessageRouter {
       // Validate message
       const message = validateMessage(rawMessage);
 
-      // Route based on message type and 'to' field
-      if (message.type === 'chat' && message.to) {
+      // Route based on message type
+      if (message.type === 'daemon_control') {
+        // Send control messages directly to daemon
+        this.sendToDaemon(message);
+      } else if (message.type === 'chat' && message.to) {
         // Unicast to specific agent
         this.sendToAgent(message.to, message);
       } else {
@@ -38,6 +42,17 @@ export class MessageRouter {
         }));
       }
     }
+  }
+
+  private sendToDaemon(message: Message) {
+    for (const [id, conn] of this.clients.entries()) {
+      if (conn.role === 'daemon' && conn.ws.readyState === 1) {
+        conn.ws.send(JSON.stringify(message));
+        console.log('Control message sent to daemon');
+        return;
+      }
+    }
+    console.warn('Daemon not connected - cannot route daemon_control message');
   }
 
   private sendToAgent(agentRole: string, message: Message) {

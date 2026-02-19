@@ -29,8 +29,8 @@ export class DaemonWebSocketClient {
     this.ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString()) as Message;
-        // Only handle chat messages directed to specific roles
-        if (message.type === 'chat' && message.to) {
+        // Handle chat messages directed to specific roles and daemon control messages
+        if ((message.type === 'chat' && message.to) || message.type === 'daemon_control') {
           this.messageHandlers.forEach(handler => handler(message));
         }
       } catch (error) {
