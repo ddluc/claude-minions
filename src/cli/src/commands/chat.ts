@@ -16,10 +16,6 @@ function colorRole(role: string): string {
   return colorFn(role);
 }
 
-function formatContent(content: string): string {
-  return content.split('\n').map(line => '  ' + line).join('\n');
-}
-
 export async function chat(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
   const settings = loadSettings(workspaceRoot);
@@ -54,7 +50,7 @@ export async function chat(): Promise<void> {
 
         const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour12: false });
         console.log(`\n${colorRole(msg.from)} (${time}):`);
-        console.log(formatContent(msg.content));
+        console.log(msg.content);
         console.log();
 
         rl.prompt();
