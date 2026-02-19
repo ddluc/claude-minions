@@ -2,10 +2,11 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import fs from 'fs-extra';
 import path from 'path';
-import { VALID_ROLES } from '../../../core/constants.js';
-import type { AgentRole, Repo, RoleConfig, Settings } from '../../../core/types.js';
+import { VALID_ROLES, DEFAULT_PERMISSIONS } from '../../../core/constants.js';
+import type { AgentRole, PermissionConfig, Repo, RoleConfig, Settings } from '../../../core/types.js';
 import { loadSettings } from '../lib/config.js';
 import { generateConnectMd, buildClaudeMd } from '../lib/templates.js';
+import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js';
 
 export async function init(): Promise<void> {
   const cwd = process.cwd();
@@ -37,6 +38,14 @@ export async function init(): Promise<void> {
   }
   console.log(chalk.green(`  Created .minions/ directories for: ${roles.join(', ')}`));
   console.log(chalk.green('  Created CLAUDE.md templates for each role'));
+
+  // Write permissions for each role
+  for (const role of roles) {
+    const resolved = resolvePermissions(settings.permissions, settings.roles[role]?.permissions);
+    const roleDir = path.join(minionsDir, role);
+    writePermissionsFile(roleDir, resolved);
+  }
+  console.log(chalk.green('  Created .claude/settings.local.json for each role'));
 
   // Create connect.md
   fs.writeFileSync(path.join(minionsDir, 'connect.md'), generateConnectMd());
@@ -155,10 +164,23 @@ async function promptForSettings(): Promise<Settings> {
     default: '',
   }]);
 
+  // Prompt for default permissions
+  const { useDefaults } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'useDefaults',
+    message: `Seed with default permissions? (${DEFAULT_PERMISSIONS.allow.join(', ')})`,
+    default: true,
+  }]);
+
+  const permissions: PermissionConfig | undefined = useDefaults
+    ? { allow: [...DEFAULT_PERMISSIONS.allow], deny: [...DEFAULT_PERMISSIONS.deny] }
+    : undefined;
+
   return {
     mode,
     repos,
     roles,
+    ...(permissions && { permissions }),
     ...(sshKeyPath && { ssh: sshKeyPath }),
   };
 }

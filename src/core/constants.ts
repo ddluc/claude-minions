@@ -12,6 +12,19 @@ export const REPO_ACCESS: Record<string, string[]> = {
   'qa': ['all'],
 };
 
+export const DEFAULT_PERMISSIONS = {
+  allow: [
+    'Read',
+    'Glob',
+    'Grep',
+    'Write',
+    'Edit',
+    'Bash(git *)',
+    'Bash(gh *)',
+  ],
+  deny: [] as string[],
+};
+
 export const ROLE_LABEL_COLORS: Record<string, string> = {
   'pm': 'D4C5F9',
   'cao': 'F9D0C4',
