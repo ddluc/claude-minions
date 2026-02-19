@@ -39,9 +39,9 @@ export const SystemMessageSchema = z.object({
   timestamp: z.string(),
 });
 
-export const DaemonControlMessageSchema = z.object({
-  type: z.literal('daemon_control'),
-  action: z.enum(['pause', 'unpause']),
+export const ChatControlMessageSchema = z.object({
+  type: z.literal('chat_control'),
+  action: z.enum(['pause', 'resume']),
   role: z.string(),
   timestamp: z.string(),
 });
@@ -52,7 +52,7 @@ export const MessageSchema = z.discriminatedUnion('type', [
   TaskCreatedMessageSchema,
   PRCreatedMessageSchema,
   SystemMessageSchema,
-  DaemonControlMessageSchema,
+  ChatControlMessageSchema,
 ]);
 
 export function validateMessage(data: unknown) {

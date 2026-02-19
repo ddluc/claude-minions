@@ -37,9 +37,9 @@ export interface SystemMessage {
   timestamp: string;
 }
 
-export interface DaemonControlMessage {
-  type: 'daemon_control';
-  action: 'pause' | 'unpause';
+export interface ChatControlMessage {
+  type: 'chat_control';
+  action: 'pause' | 'resume';
   role: string;
   timestamp: string;
 }
@@ -50,4 +50,4 @@ export type Message =
   | TaskCreatedMessage
   | PRCreatedMessage
   | SystemMessage
-  | DaemonControlMessage;
+  | ChatControlMessage;

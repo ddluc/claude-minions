@@ -19,7 +19,7 @@ export class MessageRouter {
     try {
       const message = validateMessage(rawMessage);
 
-      if (message.type === 'daemon_control') {
+      if (message.type === 'chat_control') {
         if (message.action === 'pause') {
           this.paused = true;
           console.log('Chat paused — agent tapped into interactive mode');
@@ -28,7 +28,7 @@ export class MessageRouter {
             content: `@${message.role} is now in interactive mode — chat is temporarily paused`,
             timestamp: new Date().toISOString(),
           });
-        } else if (message.action === 'unpause') {
+        } else if (message.action === 'resume') {
           this.paused = false;
           console.log('Chat resumed');
           this.broadcastAll({

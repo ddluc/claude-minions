@@ -5,18 +5,18 @@ import { spawnSync } from 'node:child_process';
 import WebSocket from 'ws';
 import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
-import type { DaemonControlMessage } from '../../../core/messages.js';
+import type { ChatControlMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 import { buildClaudeMd } from '../lib/templates.js';
 
 /**
- * Send a daemon_control message over a WebSocket connection.
+ * Send a chat_control message over a WebSocket connection.
  */
-function sendControl(ws: WebSocket, action: 'pause' | 'unpause', role: string): Promise<void> {
+function sendControl(ws: WebSocket, action: 'pause' | 'resume', role: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const message: DaemonControlMessage = {
-      type: 'daemon_control',
+    const message: ChatControlMessage = {
+      type: 'chat_control',
       action,
       role,
       timestamp: new Date().toISOString(),
@@ -219,7 +219,7 @@ export async function tap(role: string): Promise<void> {
   if (freshWs) {
     try {
       console.log(chalk.yellow(`Resuming chat...`));
-      await sendControl(freshWs, 'unpause', role);
+      await sendControl(freshWs, 'resume', role);
       await new Promise((resolve) => setTimeout(resolve, 200));
     } catch {
       // Best effort

@@ -30,7 +30,7 @@ export class DaemonWebSocketClient {
       try {
         const message = JSON.parse(data.toString()) as Message;
         // Handle chat and daemon control messages
-        if (message.type === 'chat' || message.type === 'daemon_control') {
+        if (message.type === 'chat') {
           this.messageHandlers.forEach(handler => handler(message));
         }
       } catch (error) {
