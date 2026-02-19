@@ -14,13 +14,25 @@ export const REPO_ACCESS: Record<string, string[]> = {
 
 export const DEFAULT_PERMISSIONS = {
   allow: [
-    'Read',
-    'Glob',
-    'Grep',
-    'Write',
-    'Edit',
-    'Bash(git *)',
-    'Bash(gh *)',
+    "Read",
+    "Glob", 
+    "Grep",
+    "Write",
+    "Edit",
+    "Bash(git *)",
+    "Bash(gh *)",
+    "Bash(npm *)",       
+    "Bash(npx *)",       
+    "Bash(ls *)",        
+    "Bash(mkdir *)",     
+    "Bash(rm *)",        
+    "Bash(touch *)",     
+    "Bash(cat *)",
+    "Bash(cp *)",
+    "Bash(mv *)",
+    "Bash(echo *)",
+    "Bash(chmod *)",
+    "Bash(pwd)"   
   ],
   deny: [] as string[],
 };
