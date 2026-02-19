@@ -77,6 +77,17 @@ export async function daemon(): Promise<void> {
       processingFlags.set(role, false);
     }
     messageQueues.get(role)!.push({ msg, depth });
+
+    if (pausedRoles.has(role)) {
+      console.log(`[${role}] Is in interactive mode — message queued`);
+      wsClient.sendMessage({
+        type: 'system',
+        content: `@${role} is currently in interactive mode — message queued and will be processed when the session ends`,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     processRoleQueue(role);
   }
 

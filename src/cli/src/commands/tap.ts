@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import WebSocket from 'ws';
 import { VALID_ROLES } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
-import type { DaemonControlMessage } from '../../../core/messages.js';
+import type { DaemonControlMessage, SystemMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 import { buildClaudeMd } from '../lib/templates.js';
@@ -24,6 +24,23 @@ function sendDaemonControl(
       type: 'daemon_control',
       action,
       role,
+      timestamp: new Date().toISOString(),
+    };
+    ws.send(JSON.stringify(message), (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+/**
+ * Broadcast a system message to all connected clients.
+ */
+function sendSystemMessage(ws: WebSocket, content: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const message: SystemMessage = {
+      type: 'system',
+      content,
       timestamp: new Date().toISOString(),
     };
     ws.send(JSON.stringify(message), (err) => {
@@ -182,6 +199,7 @@ export async function tap(role: string): Promise<void> {
       try {
         console.log(chalk.yellow(`Pausing daemon for ${role}...`));
         await sendDaemonControl(ws, 'pause', role);
+        await sendSystemMessage(ws, `@${role} is now in interactive mode — messages will be queued until the session ends`);
       } catch (err) {
         console.log(chalk.yellow(`Warning: Could not pause daemon — ${err}`));
       }
@@ -196,7 +214,8 @@ export async function tap(role: string): Promise<void> {
       try {
         console.log(chalk.yellow(`\nResuming daemon for ${role}...`));
         await sendDaemonControl(ws, 'unpause', role);
-        // Brief delay to let the message flush
+        await sendSystemMessage(ws, `@${role} has returned from interactive mode — resuming`);
+        // Brief delay to let messages flush
         await new Promise((resolve) => setTimeout(resolve, 200));
       } catch {
         // Best effort
