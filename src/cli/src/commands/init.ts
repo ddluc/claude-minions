@@ -5,7 +5,7 @@ import path from 'path';
 import { VALID_ROLES, DEFAULT_PERMISSIONS } from '../../../core/constants.js';
 import type { AgentRole, PermissionConfig, Repo, RoleConfig, Settings } from '../../../core/types.js';
 import { loadSettings } from '../lib/config.js';
-import { generateConnectMd, buildClaudeMd } from '../lib/templates.js';
+import { buildClaudeMd } from '../lib/templates.js';
 import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js';
 
 export async function init(): Promise<void> {
@@ -47,9 +47,6 @@ export async function init(): Promise<void> {
   }
   console.log(chalk.dim('Created .claude/settings.local.json for each role'));
 
-  // Create connect.md
-  fs.writeFileSync(path.join(minionsDir, 'connect.md'), generateConnectMd());
-  console.log(chalk.dim('Created .minions/connect.md'));
 
   // Create .env template if it doesn't exist
   const envPath = path.join(cwd, '.env');
