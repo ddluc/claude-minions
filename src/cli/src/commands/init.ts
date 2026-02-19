@@ -76,7 +76,7 @@ export async function init(): Promise<void> {
   console.log(chalk.bold.green('\nWorkspace initialized\n'));
   console.log(chalk.dim('Next steps:\n'));
   console.log(chalk.dim('1. Start the minions server `minions up`'));
-  console.log(chalk.dim('2. Run `minions start <role>` to connect to an agent'));
+  console.log(chalk.dim('2. Run `minions tap <role>` to connect to an agent'));
 }
 
 async function promptForSettings(): Promise<Settings> {
