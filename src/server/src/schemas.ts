@@ -18,21 +18,6 @@ export const AgentStatusMessageSchema = z.object({
   timestamp: z.string(),
 });
 
-export const TaskCreatedMessageSchema = z.object({
-  type: z.literal('task_created'),
-  role: z.string(),
-  taskFile: z.string(),
-  timestamp: z.string(),
-});
-
-export const PRCreatedMessageSchema = z.object({
-  type: z.literal('pr_created'),
-  role: z.string(),
-  prNumber: z.number(),
-  prUrl: z.string(),
-  timestamp: z.string(),
-});
-
 export const SystemMessageSchema = z.object({
   type: z.literal('system'),
   content: z.string(),
@@ -49,8 +34,6 @@ export const ChatControlMessageSchema = z.object({
 export const MessageSchema = z.discriminatedUnion('type', [
   ChatMessageSchema,
   AgentStatusMessageSchema,
-  TaskCreatedMessageSchema,
-  PRCreatedMessageSchema,
   SystemMessageSchema,
   ChatControlMessageSchema,
 ]);

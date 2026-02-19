@@ -16,21 +16,6 @@ export interface AgentStatusMessage {
   timestamp: string;
 }
 
-export interface TaskCreatedMessage {
-  type: 'task_created';
-  role: string;
-  taskFile: string;
-  timestamp: string;
-}
-
-export interface PRCreatedMessage {
-  type: 'pr_created';
-  role: string;
-  prNumber: number;
-  prUrl: string;
-  timestamp: string;
-}
-
 export interface SystemMessage {
   type: 'system';
   content: string;
@@ -47,7 +32,5 @@ export interface ChatControlMessage {
 export type Message =
   | ChatMessage
   | AgentStatusMessage
-  | TaskCreatedMessage
-  | PRCreatedMessage
   | SystemMessage
   | ChatControlMessage;
