@@ -9,6 +9,7 @@ import { daemon } from './commands/daemon.js';
 import { chat } from './commands/chat.js';
 import { up } from './commands/up.js';
 import { down } from './commands/down.js';
+import { permissionsUpdate } from './commands/permissions.js';
 import { VALID_ROLES } from '../../core/constants.js';
 
 const program = new Command();
@@ -62,5 +63,14 @@ program
   .command('status')
   .description('Show status of all agents')
   .action(status);
+
+const permissions = program
+  .command('permissions')
+  .description('Manage agent permissions');
+
+permissions
+  .command('update')
+  .description('Re-apply permissions from minions.json to all roles')
+  .action(permissionsUpdate);
 
 program.parse();

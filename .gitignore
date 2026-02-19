@@ -28,7 +28,8 @@ dist-ssr
 # Minions workspace data
 .minions
 minions.json
+minions.default.json
+minion_key
 
 # Minions
 .minions/
-minion_key

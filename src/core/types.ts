@@ -8,16 +8,23 @@ export interface Repo {
 
 export type ClaudeModel = 'opus' | 'sonnet' | 'haiku';
 
+export interface PermissionConfig {
+  allow?: string[];
+  deny?: string[];
+}
+
 export interface RoleConfig {
   systemPrompt?: string;
   systemPromptFile?: string;
   model?: ClaudeModel;
+  permissions?: PermissionConfig;
 }
 
 export interface Settings {
   mode: 'ask' | 'yolo';
   repos: Repo[];
   roles: Partial<Record<AgentRole, RoleConfig>>;
+  permissions?: PermissionConfig;
   ssh?: string;
   serverPort?: number;
 }
