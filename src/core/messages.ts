@@ -4,7 +4,6 @@ import type { AgentStatus } from './types.js';
 export interface ChatMessage {
   type: 'chat';
   from: string;
-  to?: string;
   content: string;
   timestamp: string;
 }

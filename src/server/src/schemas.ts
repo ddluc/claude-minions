@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const ChatMessageSchema = z.object({
   type: z.literal('chat'),
   from: z.string(),
-  to: z.string().optional(),
   content: z.string(),
   timestamp: z.string(),
 });
