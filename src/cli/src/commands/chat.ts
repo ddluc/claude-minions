@@ -30,13 +30,6 @@ export async function chat(): Promise<void> {
   });
 
   ws.on('open', () => {
-    ws.send(JSON.stringify({
-      type: 'agent_status',
-      role: 'user',
-      status: 'online',
-      timestamp: new Date().toISOString(),
-    }));
-
     console.log(chalk.dim('Connected to minions chat. Type @role to message agents. Ctrl+C to exit.\n'));
     rl.prompt();
   });
@@ -93,12 +86,6 @@ export async function chat(): Promise<void> {
   });
 
   rl.on('close', () => {
-    ws.send(JSON.stringify({
-      type: 'agent_status',
-      role: 'user',
-      status: 'offline',
-      timestamp: new Date().toISOString(),
-    }));
     ws.close();
     process.exit(0);
   });

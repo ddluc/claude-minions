@@ -7,17 +7,6 @@ export const ChatMessageSchema = z.object({
   timestamp: z.string(),
 });
 
-// Must stay in sync with AgentStatus in core/types.ts
-const AgentStatusValues = ['online', 'offline', 'working', 'paused'] as const;
-
-export const AgentStatusMessageSchema = z.object({
-  type: z.literal('agent_status'),
-  role: z.string(),
-  status: z.enum(AgentStatusValues),
-  currentBranch: z.string().optional(),
-  timestamp: z.string(),
-});
-
 export const SystemMessageSchema = z.object({
   type: z.literal('system'),
   content: z.string(),
@@ -33,7 +22,6 @@ export const ChatControlMessageSchema = z.object({
 
 export const MessageSchema = z.discriminatedUnion('type', [
   ChatMessageSchema,
-  AgentStatusMessageSchema,
   SystemMessageSchema,
   ChatControlMessageSchema,
 ]);

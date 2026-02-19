@@ -1,19 +1,16 @@
 import type { Message } from '../../core/messages.js';
 import type { WebSocket } from 'ws';
-import type { AgentStatus } from '../../core/types.js';
 import { validateMessage } from './schemas.js';
 
-export interface AgentConnection {
+export interface ClientConnection {
   ws: WebSocket;
-  role: string;
-  status: AgentStatus;
   connectedAt: string;
 }
 
 export class MessageRouter {
   private paused = false;
 
-  constructor(private clients: Map<string, AgentConnection>) {}
+  constructor(private clients: Map<string, ClientConnection>) {}
 
   route(rawMessage: unknown, senderId: string) {
     try {

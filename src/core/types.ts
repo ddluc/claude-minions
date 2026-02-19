@@ -30,12 +30,3 @@ export interface Settings {
 }
 
 export type AgentRole = 'pm' | 'cao' | 'fe-engineer' | 'be-engineer' | 'qa';
-
-export type AgentStatus = 'online' | 'offline' | 'working' | 'paused';
-
-export interface AgentState {
-  role: AgentRole;
-  status: AgentStatus;
-  connectedAt?: string;
-  currentBranch?: string;
-}

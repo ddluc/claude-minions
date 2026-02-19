@@ -16,15 +16,8 @@ export class MinionsServer {
   }
 
   private setupRoutes() {
-    // Health check endpoint
     this.app.get('/api/health', (req, res) => {
       res.json({ status: 'ok' });
-    });
-
-    // Get connected agents
-    this.app.get('/api/agents', (req, res) => {
-      const agents = this.wss.getConnectedAgents();
-      res.json({ agents });
     });
   }
 
@@ -32,9 +25,7 @@ export class MinionsServer {
     this.server.listen(port, () => {
       console.log(`Minions server running on port ${port}`);
       console.log(`WebSocket endpoint: ws://localhost:${port}/ws`);
-      console.log(`API endpoints:`);
-      console.log(`  - GET http://localhost:${port}/api/health`);
-      console.log(`  - GET http://localhost:${port}/api/agents`);
+      console.log(`API: GET http://localhost:${port}/api/health`);
     });
   }
 }

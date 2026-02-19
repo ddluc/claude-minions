@@ -18,7 +18,6 @@ export class AgentWebSocketClient {
 
     this.ws.on('open', () => {
       console.log(`[${this.role}] Connected to server`);
-      this.sendStatus('online');
     });
 
     this.ws.on('message', (data) => {
@@ -66,26 +65,13 @@ export class AgentWebSocketClient {
     });
   }
 
-  sendStatus(status: 'online' | 'offline' | 'working', currentBranch?: string) {
-    this.sendMessage({
-      type: 'agent_status',
-      role: this.role,
-      status,
-      currentBranch,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
   private handleMessage(message: Message) {
-    // Handle incoming messages
-    // For now, just log them
     console.log(`[${this.role}] Received message:`, JSON.stringify(message, null, 2));
   }
 
   disconnect() {
     this.shouldReconnect = false;
     if (this.ws) {
-      this.sendStatus('offline');
       this.ws.close();
       this.ws = null;
     }
