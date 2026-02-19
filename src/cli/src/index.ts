@@ -2,7 +2,6 @@ import 'dotenv/config';
 import { Command } from 'commander';
 import { init } from './commands/init.js';
 import { server } from './commands/server.js';
-import { stop } from './commands/stop.js';
 import { status } from './commands/status.js';
 import { daemon } from './commands/daemon.js';
 import { chat } from './commands/chat.js';
@@ -25,21 +24,6 @@ program
   .action(init);
 
 program
-  .command('server')
-  .description('Start the minions server')
-  .action(server);
-
-program
-  .command('daemon')
-  .description('Start the daemon for autonomous agent communication')
-  .action(daemon);
-
-program
-  .command('chat')
-  .description('Open interactive chat with minions')
-  .action(chat);
-
-program
   .command('up')
   .description('Start server and daemon')
   .action(up);
@@ -50,14 +34,14 @@ program
   .action(down);
 
 program
-  .command('stop <role>')
-  .description('Stop a running agent by role')
-  .action(stop);
+  .command('tap <role>')
+  .description(`Tap into an agent's session interactively (${VALID_ROLES.join(', ')})`)
+  .action(tap);
 
 program
-  .command('tap <role>')
-  .description(`Tap into a running agent's session interactively (${VALID_ROLES.join(', ')})`)
-  .action(tap);
+  .command('chat')
+  .description('Open interactive chat with agents')
+  .action(chat);
 
 program
   .command('status')
@@ -72,5 +56,16 @@ permissions
   .command('update')
   .description('Re-apply permissions from minions.json to all roles')
   .action(permissionsUpdate);
+
+// Internal commands used by `up` — hidden from help output
+program
+  .command('server', { hidden: true })
+  .description('Start the minions server')
+  .action(server);
+
+program
+  .command('daemon', { hidden: true })
+  .description('Start the daemon for autonomous agent communication')
+  .action(daemon);
 
 program.parse();
