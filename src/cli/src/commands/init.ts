@@ -121,11 +121,11 @@ async function promptForSettings(): Promise<Settings> {
 
   // Prompt for team roles
   const ROLE_DESCRIPTIONS: Record<string, string> = {
-    'pm':          'PM           - Monitors issues, tracks project status',
-    'cao':         'CAO          - Technical architect, task breakdown, delegation',
-    'fe-engineer': 'FE Engineer  - Implements UI/frontend features',
-    'be-engineer': 'BE Engineer  - Implements APIs, backend logic',
-    'qa':          'QA           - Verifies code changes, runs dev servers',
+    'pm':          'PM',
+    'cao':         'CAO',
+    'fe-engineer': 'FE Engineer',
+    'be-engineer': 'BE Engineer',
+    'qa':          'QA',
   };
 
   const { selectedRoles } = await inquirer.prompt([{
