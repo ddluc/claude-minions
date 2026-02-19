@@ -57,9 +57,21 @@ export async function daemon(): Promise<void> {
       if (controlMsg.action === 'pause') {
         pausedRoles.add(role);
         console.log(`[${role}] Paused`);
+        wsClient.sendMessage({
+          type: 'agent_status',
+          role,
+          status: 'paused',
+          timestamp: new Date().toISOString(),
+        });
       } else if (controlMsg.action === 'unpause') {
         pausedRoles.delete(role);
         console.log(`[${role}] Unpaused`);
+        wsClient.sendMessage({
+          type: 'agent_status',
+          role,
+          status: 'online',
+          timestamp: new Date().toISOString(),
+        });
         // Resume processing any queued messages
         processRoleQueue(role);
       }
@@ -92,8 +104,8 @@ export async function daemon(): Promise<void> {
     if (pausedRoles.has(role)) return; // Role is paused
     if (processingFlags.get(role)) return; // Already processing
 
-    const queue = messageQueues.get(role)!;
-    if (queue.length === 0) return;
+    const queue = messageQueues.get(role);
+    if (!queue || queue.length === 0) return;
 
     processingFlags.set(role, true);
 

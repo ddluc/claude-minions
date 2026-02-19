@@ -8,6 +8,7 @@ export const ChatMessageSchema = z.object({
   timestamp: z.string(),
 });
 
+// Must stay in sync with AgentStatus in core/types.ts
 const AgentStatusValues = ['online', 'offline', 'working', 'paused'] as const;
 
 export const AgentStatusMessageSchema = z.object({
