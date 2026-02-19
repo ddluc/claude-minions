@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import readline from 'readline';
 import chalk from 'chalk';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { DEFAULT_PORT } from '../../../core/constants.js';
 
 const ROLE_COLORS: Record<string, (text: string) => string> = {
   'cao': chalk.cyan,
@@ -19,7 +20,7 @@ function colorRole(role: string): string {
 export async function chat(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
   const settings = loadSettings(workspaceRoot);
-  const serverUrl = `ws://localhost:${settings.serverPort || 3000}/ws`;
+  const serverUrl = `ws://localhost:${settings.serverPort || DEFAULT_PORT}/ws`;
 
   const ws = new WebSocket(serverUrl);
 
@@ -29,13 +30,6 @@ export async function chat(): Promise<void> {
   });
 
   ws.on('open', () => {
-    ws.send(JSON.stringify({
-      type: 'agent_status',
-      role: 'user',
-      status: 'online',
-      timestamp: new Date().toISOString(),
-    }));
-
     console.log(chalk.dim('Connected to minions chat. Type @role to message agents. Ctrl+C to exit.\n'));
     rl.prompt();
   });
@@ -92,12 +86,6 @@ export async function chat(): Promise<void> {
   });
 
   rl.on('close', () => {
-    ws.send(JSON.stringify({
-      type: 'agent_status',
-      role: 'user',
-      status: 'offline',
-      timestamp: new Date().toISOString(),
-    }));
     ws.close();
     process.exit(0);
   });

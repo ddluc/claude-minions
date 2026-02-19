@@ -17,20 +17,12 @@ export class DaemonWebSocketClient {
 
     this.ws.on('open', () => {
       console.log('[daemon] Connected to server');
-      // Identify as daemon role
-      this.sendMessage({
-        type: 'agent_status',
-        role: 'daemon',
-        status: 'online',
-        timestamp: new Date().toISOString(),
-      });
     });
 
     this.ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString()) as Message;
-        // Handle chat and daemon control messages
-        if (message.type === 'chat' || message.type === 'daemon_control') {
+        if (message.type === 'chat') {
           this.messageHandlers.forEach(handler => handler(message));
         }
       } catch (error) {
@@ -74,12 +66,6 @@ export class DaemonWebSocketClient {
   disconnect(): void {
     this.shouldReconnect = false;
     if (this.ws) {
-      this.sendMessage({
-        type: 'agent_status',
-        role: 'daemon',
-        status: 'offline',
-        timestamp: new Date().toISOString(),
-      });
       this.ws.close();
       this.ws = null;
     }

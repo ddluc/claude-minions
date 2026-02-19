@@ -1,11 +1,11 @@
 import { WebSocketServer as WSServer, WebSocket } from 'ws';
 import type { Server } from 'http';
-import { MessageRouter, type AgentConnection } from './MessageRouter.js';
+import { MessageRouter, type ClientConnection } from './MessageRouter.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class WebSocketServer {
   private wss: WSServer;
-  private clients: Map<string, AgentConnection>;
+  private clients: Map<string, ClientConnection>;
   private router: MessageRouter;
 
   constructor(server: Server) {
@@ -19,39 +19,22 @@ export class WebSocketServer {
   private handleConnection(ws: WebSocket) {
     const clientId = uuidv4();
 
-    // Initialize connection with default values
-    const connection: AgentConnection = {
+    const connection: ClientConnection = {
       ws,
-      role: 'unknown',
-      status: 'online',
       connectedAt: new Date().toISOString(),
     };
 
     this.clients.set(clientId, connection);
     console.log(`Client connected: ${clientId}`);
 
-    // Set up message handler
     ws.on('message', (data) => {
       try {
         const rawData = data.toString();
         console.log(`Received message from ${clientId}: ${rawData.substring(0, 200)}`);
-
-        const message = JSON.parse(rawData);
-
-        // Update connection metadata if it's an agent_status message
-        if (message.type === 'agent_status') {
-          connection.role = message.role;
-          connection.status = message.status;
-          connection.connectedAt = message.timestamp || connection.connectedAt;
-          console.log(`Agent registered: ${message.role} (${clientId})`);
-        }
-
-        // Route the message
-        this.router.route(message, clientId);
+        this.router.route(JSON.parse(rawData), clientId);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.error(`Error handling message from ${clientId}:`, errorMsg);
-        console.error('Raw data received:', data.toString().substring(0, 500));
         ws.send(JSON.stringify({
           type: 'system',
           content: `Error processing message: ${errorMsg}`,
@@ -60,31 +43,19 @@ export class WebSocketServer {
       }
     });
 
-    // Set up disconnect handler
     ws.on('close', () => {
-      console.log(`Client disconnected: ${clientId} (role: ${connection.role})`);
+      console.log(`Client disconnected: ${clientId}`);
       this.clients.delete(clientId);
     });
 
-    // Set up error handler
     ws.on('error', (error) => {
       console.error(`WebSocket error for ${clientId}:`, error);
     });
 
-    // Send welcome message
     ws.send(JSON.stringify({
       type: 'system',
       content: 'Connected to Minions server',
       timestamp: new Date().toISOString(),
-    }));
-  }
-
-  getConnectedAgents() {
-    return Array.from(this.clients.entries()).map(([id, conn]) => ({
-      id,
-      role: conn.role,
-      status: conn.status,
-      connectedAt: conn.connectedAt,
     }));
   }
 }

@@ -5,7 +5,7 @@ import path from 'path';
 import { VALID_ROLES, DEFAULT_PERMISSIONS } from '../../../core/constants.js';
 import type { AgentRole, PermissionConfig, Repo, RoleConfig, Settings } from '../../../core/types.js';
 import { loadSettings } from '../lib/config.js';
-import { generateConnectMd, buildClaudeMd } from '../lib/templates.js';
+import { buildClaudeMd } from '../lib/templates.js';
 import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js';
 
 export async function init(): Promise<void> {
@@ -47,9 +47,6 @@ export async function init(): Promise<void> {
   }
   console.log(chalk.dim('Created .claude/settings.local.json for each role'));
 
-  // Create connect.md
-  fs.writeFileSync(path.join(minionsDir, 'connect.md'), generateConnectMd());
-  console.log(chalk.dim('Created .minions/connect.md'));
 
   // Create .env template if it doesn't exist
   const envPath = path.join(cwd, '.env');
@@ -76,7 +73,7 @@ export async function init(): Promise<void> {
   console.log(chalk.bold.green('\nWorkspace initialized\n'));
   console.log(chalk.dim('Next steps:\n'));
   console.log(chalk.dim('1. Start the minions server `minions up`'));
-  console.log(chalk.dim('2. Run `minions start <role>` to connect to an agent'));
+  console.log(chalk.dim('2. Run `minions tap <role>` to connect to an agent'));
 }
 
 async function promptForSettings(): Promise<Settings> {

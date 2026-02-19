@@ -2,14 +2,57 @@ import chalk from 'chalk';
 import path from 'path';
 import fs from 'fs-extra';
 import { spawnSync } from 'node:child_process';
-import { VALID_ROLES } from '../../../core/constants.js';
+import WebSocket from 'ws';
+import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
+import type { ChatControlMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 import { buildClaudeMd } from '../lib/templates.js';
-import { AgentWebSocketClient } from '../agent/WebSocketClient.js';
 
-export async function start(role: string): Promise<void> {
+/**
+ * Send a chat_control message over a WebSocket connection.
+ */
+function sendControl(ws: WebSocket, action: 'pause' | 'resume', role: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const message: ChatControlMessage = {
+      type: 'chat_control',
+      action,
+      role,
+      timestamp: new Date().toISOString(),
+    };
+    ws.send(JSON.stringify(message), (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+/**
+ * Open a WebSocket connection and wait for it to be ready.
+ * Returns null if the server is not reachable.
+ */
+function connectWebSocket(url: string): Promise<WebSocket | null> {
+  return new Promise((resolve) => {
+    const ws = new WebSocket(url);
+    const timeout = setTimeout(() => {
+      ws.terminate();
+      resolve(null);
+    }, 3000);
+
+    ws.on('open', () => {
+      clearTimeout(timeout);
+      resolve(ws);
+    });
+
+    ws.on('error', () => {
+      clearTimeout(timeout);
+      resolve(null);
+    });
+  });
+}
+
+export async function tap(role: string): Promise<void> {
   // Validate role
   if (!VALID_ROLES.includes(role as AgentRole)) {
     console.error(chalk.red(`Invalid role: ${role}`));
@@ -111,45 +154,56 @@ export async function start(role: string): Promise<void> {
   fs.writeFileSync(pidFile, String(process.pid));
   process.on('exit', () => { try { fs.removeSync(pidFile); } catch {} });
 
+  // Read session ID if it exists
+  const sessionFile = path.join(roleDir, '.session-id');
+  const sessionId = fs.existsSync(sessionFile)
+    ? fs.readFileSync(sessionFile, 'utf-8').trim()
+    : null;
+
+  if (sessionId) {
+    console.log(chalk.cyan(`Resuming session: ${sessionId}`));
+  } else {
+    console.log(chalk.cyan('Starting fresh session'));
+  }
+
+  // Pause chat via server
+  const serverPort = settings.serverPort || DEFAULT_PORT;
+  const serverUrl = `ws://localhost:${serverPort}/ws`;
+
+  console.log(chalk.dim(`Connecting to server at ${serverUrl}...`));
+  const ws = await connectWebSocket(serverUrl);
+
+  if (ws) {
+    try {
+      console.log(chalk.yellow(`Pausing chat...`));
+      await sendControl(ws, 'pause', role);
+    } catch (err) {
+      console.log(chalk.yellow(`Warning: Could not pause chat — ${err}`));
+    }
+    // Close the initial connection — we'll open a fresh one on exit
+    ws.close();
+  } else {
+    console.log(chalk.dim('Server not running — skipping pause'));
+  }
+
   // Build claude CLI arguments
   const claudeArgs: string[] = [];
+
+  if (sessionId) {
+    claudeArgs.push('--resume', sessionId);
+  }
+
   if (settings.mode === 'yolo') {
     claudeArgs.push('--dangerously-skip-permissions');
   }
 
-  // Pass model configuration if specified
   const roleConfig = settings.roles[agentRole];
   if (roleConfig?.model) {
     claudeArgs.push('--model', roleConfig.model);
   }
 
-  // Connect agent to server if serverPort is configured
-  let wsClient: AgentWebSocketClient | undefined;
-  if (settings.serverPort) {
-    const serverUrl = `ws://localhost:${settings.serverPort}/ws`;
-    wsClient = new AgentWebSocketClient(agentRole, serverUrl);
-    console.log(chalk.dim(`Connecting to server at ${serverUrl}...`));
-    wsClient.connect();
-  }
-
-  // Ensure cleanup on exit
-  const cleanup = () => {
-    if (wsClient) {
-      wsClient.disconnect();
-    }
-  };
-  process.on('exit', cleanup);
-  process.on('SIGINT', () => {
-    cleanup();
-    process.exit(0);
-  });
-  process.on('SIGTERM', () => {
-    cleanup();
-    process.exit(0);
-  });
-
-  // Launch claude
-  console.log(chalk.bold.green(`\nStarting ${role} agent...`));
+  // Launch claude interactively
+  console.log(chalk.bold.green(`\nTapping into ${role} agent...`));
   console.log(chalk.dim(`Working directory: ${roleDir}`));
   console.log(chalk.dim(`CLAUDE.md loaded from this directory\n`));
 
@@ -159,6 +213,21 @@ export async function start(role: string): Promise<void> {
     shell: true,
     env: { ...process.env, ...envVars },
   });
+
+  // Resume chat via fresh WS connection
+  const freshWs = await connectWebSocket(serverUrl);
+  if (freshWs) {
+    try {
+      console.log(chalk.yellow(`Resuming chat...`));
+      await sendControl(freshWs, 'resume', role);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    } catch {
+      // Best effort
+    }
+    freshWs.close();
+  } else {
+    console.log(chalk.dim('Could not reconnect to server — chat may still be paused'));
+  }
 
   if (result.error) {
     console.error(chalk.red('Failed to start claude CLI'));

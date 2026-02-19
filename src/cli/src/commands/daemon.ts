@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import { spawnSync } from 'child_process';
 import { DaemonWebSocketClient } from '../agent/DaemonWebSocketClient.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
-import type { Message, ChatMessage, DaemonControlMessage } from '../../../core/messages.js';
+import type { Message, ChatMessage } from '../../../core/messages.js';
 import type { AgentRole } from '../../../core/types.js';
 
 const MAX_ROUTING_DEPTH = 5;
@@ -64,7 +64,6 @@ export async function daemon(): Promise<void> {
   // Message queue per role (for concurrent message handling)
   const messageQueues = new Map<AgentRole, QueuedMessage[]>();
   const processingFlags = new Map<AgentRole, boolean>();
-  const pausedRoles = new Set<AgentRole>();
 
   function queueForRole(role: AgentRole, msg: ChatMessage, depth: number) {
     if (!settings.roles[role]) {
@@ -82,35 +81,6 @@ export async function daemon(): Promise<void> {
 
   // Handle incoming messages
   wsClient.on('message', async (msg: Message) => {
-    // Handle daemon control messages (pause/unpause)
-    if (msg.type === 'daemon_control') {
-      const controlMsg = msg as DaemonControlMessage;
-      const role = controlMsg.role as AgentRole;
-
-      if (controlMsg.action === 'pause') {
-        pausedRoles.add(role);
-        console.log(`[${role}] Paused`);
-        wsClient.sendMessage({
-          type: 'agent_status',
-          role,
-          status: 'paused',
-          timestamp: new Date().toISOString(),
-        });
-      } else if (controlMsg.action === 'unpause') {
-        pausedRoles.delete(role);
-        console.log(`[${role}] Unpaused`);
-        wsClient.sendMessage({
-          type: 'agent_status',
-          role,
-          status: 'online',
-          timestamp: new Date().toISOString(),
-        });
-        // Resume processing any queued messages
-        processRoleQueue(role);
-      }
-      return;
-    }
-
     if (msg.type !== 'chat') return;
 
     // Parse @mentions to determine which roles should respond
@@ -129,7 +99,6 @@ export async function daemon(): Promise<void> {
   });
 
   async function processRoleQueue(role: AgentRole): Promise<void> {
-    if (pausedRoles.has(role)) return; // Role is paused
     if (processingFlags.get(role)) return; // Already processing
 
     const queue = messageQueues.get(role);
