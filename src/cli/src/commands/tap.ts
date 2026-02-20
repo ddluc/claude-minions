@@ -8,6 +8,7 @@ import type { AgentRole } from '../../../core/types.js';
 import type { ChatControlMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { parseEnvFile } from '../lib/utils.js';
+import { ProcessManager } from '../services/ProcessManager.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 import { buildClaudeMd } from '../lib/templates.js';
 
@@ -137,9 +138,9 @@ export async function tap(role: string): Promise<void> {
   );
 
   // Write PID file for status tracking
-  const pidFile = path.join(roleDir, '.pid');
-  fs.writeFileSync(pidFile, String(process.pid));
-  process.on('exit', () => { try { fs.removeSync(pidFile); } catch {} });
+  const pm = new ProcessManager(workspaceRoot);
+  pm.writeRolePid(role, process.pid);
+  process.on('exit', () => { try { pm.removeRolePid(role); } catch {} });
 
   // Read session ID if it exists
   const sessionFile = path.join(roleDir, '.session-id');
