@@ -2,7 +2,6 @@ import chalk from 'chalk';
 import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
-import { ProcessManager } from '../services/ProcessManager.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import { ChatControlClient } from '../services/ChatControlClient.js';
@@ -28,8 +27,11 @@ export async function tap(role: string): Promise<void> {
   }
 
   // Guard: server must be running before tapping in
-  const pm = new ProcessManager(workspaceRoot);
-  if (!pm.getStatus('server').running) {
+  const serverPort = settings.serverPort || DEFAULT_PORT;
+  try {
+    const res = await fetch(`http://localhost:${serverPort}/api/health`);
+    if (!res.ok) throw new Error('unhealthy');
+  } catch {
     console.error(chalk.red('Server not running. Run `minions up` first.'));
     process.exit(1);
   }
@@ -39,10 +41,6 @@ export async function tap(role: string): Promise<void> {
 
   // Load .env variables for the spawned process environment
   const envVars = workspace.loadEnvVars();
-
-  // Write PID file for status tracking
-  pm.writeRolePid(role, process.pid);
-  process.on('exit', () => { try { pm.removeRolePid(role); } catch {} });
 
   // Read session ID if it exists
   const sessionId = workspace.readSessionId(agentRole);
@@ -54,7 +52,6 @@ export async function tap(role: string): Promise<void> {
   }
 
   // Pause chat via server
-  const serverPort = settings.serverPort || DEFAULT_PORT;
   const chatControl = new ChatControlClient(serverPort);
 
   console.log(chalk.dim(`Connecting to server at ws://localhost:${serverPort}/ws...`));
