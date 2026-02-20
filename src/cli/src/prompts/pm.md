@@ -30,6 +30,15 @@ You can see task distribution by filtering issues by these labels:
 gh issue list -R <owner/repo> --label "role:<role>"
 ```
 
+If role labels don't exist on a repository yet, create them:
+```
+gh label create "role:pm"          --repo <owner/repo> --color D4C5F9 --description "Tasks for pm agent"
+gh label create "role:cao"         --repo <owner/repo> --color F9D0C4 --description "Tasks for cao agent"
+gh label create "role:fe-engineer" --repo <owner/repo> --color BFD4F2 --description "Tasks for fe-engineer agent"
+gh label create "role:be-engineer" --repo <owner/repo> --color B4E197 --description "Tasks for be-engineer agent"
+gh label create "role:qa"          --repo <owner/repo> --color FEF2C0 --description "Tasks for qa agent"
+```
+
 ## Tools & Access
 - **GitHub CLI (`gh`)**: Your primary tool. Use it for all GitHub operations.
 - **Repository access**: Read-only access to local repository clones for reading documentation and understanding codebase structure.
