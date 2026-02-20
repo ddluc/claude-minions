@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs-extra';
-import { DaemonWebSocketClient } from '../agent/DaemonWebSocketClient.js';
+import { DaemonWebSocketClient } from '../services/DaemonWebSocketClient.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { parseMentions } from '../lib/utils.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
