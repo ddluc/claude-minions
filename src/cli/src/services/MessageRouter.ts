@@ -11,7 +11,7 @@ export interface ProcessResult {
 export interface MessageRouterOptions {
   enabledRoles: AgentRole[];
   maxDepth: number;
-  onProcess: (role: AgentRole, prompt: string) => ProcessResult;
+  onProcess: (role: AgentRole, prompt: string) => Promise<ProcessResult>;
   onSend: (msg: ChatMessage) => void;
 }
 
@@ -96,7 +96,7 @@ export class MessageRouter {
       console.log(`[${role}] Processing message (depth=${depth}, ${queue.length} remaining in queue)`);
 
       try {
-        const result = this.onProcess(role, prompt);
+        const result = await this.onProcess(role, prompt);
 
         if (result.error) {
           console.log(`[${role}] ${result.error}`);
