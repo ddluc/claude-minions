@@ -76,6 +76,23 @@ export class MessageRouter {
     this.processQueue(role);
   }
 
+  /**
+   * Build a prompt from a batch of queued items. Single message uses simple format;
+   * multiple messages are numbered so the agent sees full context in one call.
+   */
+  private buildPrompt(items: QueuedItem[]): string {
+    if (items.length === 1) {
+      return `Message from ${items[0].msg.from}: ${items[0].msg.content}`;
+    }
+
+    const lines = [`You have ${items.length} new messages:`];
+    items.forEach((item, i) => {
+      lines.push(`${i + 1}. Message from ${item.msg.from}: ${item.msg.content}`);
+    });
+    lines.push('\nPlease respond to all of the above.');
+    return lines.join('\n');
+  }
+
   private async processQueue(role: AgentRole): Promise<void> {
     if (this.processing.get(role)) return;
 
@@ -85,15 +102,24 @@ export class MessageRouter {
     this.processing.set(role, true);
 
     while (queue.length > 0) {
-      const { msg, depth } = queue.shift()!;
+      // Drain all currently queued items into a batch
+      const batch = queue.splice(0, queue.length);
 
-      if (depth >= this.maxDepth) {
-        console.log(`[${role}] Max routing depth (${this.maxDepth}) reached — dropping message`);
-        continue;
-      }
+      // Filter out items that have exceeded depth; use minimum depth for re-routing
+      const eligible = batch.filter(({ depth }) => {
+        if (depth >= this.maxDepth) {
+          console.log(`[${role}] Max routing depth (${this.maxDepth}) reached — dropping message`);
+          return false;
+        }
+        return true;
+      });
 
-      const prompt = `Message from ${msg.from}: ${msg.content}`;
-      console.log(`[${role}] Processing message (depth=${depth}, ${queue.length} remaining in queue)`);
+      if (eligible.length === 0) continue;
+
+      const minDepth = Math.min(...eligible.map(({ depth }) => depth));
+      const prompt = this.buildPrompt(eligible);
+
+      console.log(`[${role}] Processing batch of ${eligible.length} message(s) (minDepth=${minDepth})`);
 
       try {
         const result = await this.onProcess(role, prompt);
@@ -125,8 +151,8 @@ export class MessageRouter {
           const targetRole = mention as AgentRole;
           if (targetRole === role) continue;
           if (!this.enabledRoles.has(targetRole)) continue;
-          console.log(`[${role}] Response @mentions ${targetRole} — routing (depth=${depth + 1})`);
-          this.enqueue(targetRole, responseMsg, depth + 1);
+          console.log(`[${role}] Response @mentions ${targetRole} — routing (depth=${minDepth + 1})`);
+          this.enqueue(targetRole, responseMsg, minDepth + 1);
         }
 
         console.log(`[${role}] Response sent`);
