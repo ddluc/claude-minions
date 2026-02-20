@@ -69,6 +69,12 @@ export async function chat(): Promise<void> {
         content: trimmed,
         timestamp: new Date().toISOString(),
       }));
+
+      // Echo the user's own message formatted like agent messages
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+      console.log(`\n${chalk.bold.white('you')} (${time}):`);
+      console.log(trimmed);
+      console.log();
     }
     rl.prompt();
   });
