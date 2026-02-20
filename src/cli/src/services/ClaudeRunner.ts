@@ -101,7 +101,7 @@ export class ClaudeRunner {
     return new Promise((resolve) => {
       const child = spawn('claude', args, {
         cwd: options.roleDir,
-        shell: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env },
       });
 
