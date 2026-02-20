@@ -1,4 +1,4 @@
-import { spawnSync } from 'child_process';
+import { spawnSync, spawn } from 'child_process';
 
 export interface ClaudeRunOptions {
   sessionId?: string | null;
@@ -86,9 +86,10 @@ export class ClaudeRunner {
   }
 
   /**
-   * Spawn Claude in headless mode (for daemon). Returns response and session ID.
+   * Spawn Claude in headless mode (for daemon). Non-blocking — returns a Promise
+   * so the event loop stays free while Claude is running.
    */
-  spawnHeadless(options: HeadlessOptions): HeadlessResult {
+  spawnHeadless(options: HeadlessOptions): Promise<HeadlessResult> {
     const args = this.buildArgs({
       sessionId: options.sessionId,
       model: options.model || 'sonnet',
@@ -97,30 +98,39 @@ export class ClaudeRunner {
       prompt: options.prompt,
     });
 
-    const result = spawnSync('claude', args, {
-      cwd: options.roleDir,
-      encoding: 'utf-8',
-      maxBuffer: 10 * 1024 * 1024,
-      env: { ...process.env },
+    return new Promise((resolve) => {
+      const child = spawn('claude', args, {
+        cwd: options.roleDir,
+        env: { ...process.env },
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
+      child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+
+      child.on('error', (err) => {
+        resolve({
+          response: '',
+          sessionId: null,
+          error: `Error spawning Claude: ${err.message}`,
+        });
+      });
+
+      child.on('close', (code) => {
+        if (code !== 0) {
+          resolve({
+            response: '',
+            sessionId: null,
+            error: `Claude exited with code ${code}\nStderr: ${stderr}\nStdout: ${stdout}`,
+          });
+          return;
+        }
+        resolve(this.parseHeadlessOutput(stdout));
+      });
     });
-
-    if (result.error) {
-      return {
-        response: '',
-        sessionId: null,
-        error: `Error spawning Claude: ${result.error.message}`,
-      };
-    }
-
-    if (result.status !== 0) {
-      return {
-        response: '',
-        sessionId: null,
-        error: `Claude exited with code ${result.status}\nStderr: ${result.stderr}\nStdout: ${result.stdout}`,
-      };
-    }
-
-    return this.parseHeadlessOutput(result.stdout);
   }
 
   /**
