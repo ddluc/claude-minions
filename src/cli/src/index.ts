@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import { Command } from 'commander';
 import { init } from './commands/init.js';
-import { status } from './commands/status.js';
 import { chat } from './commands/chat.js';
 import { up } from './commands/up.js';
 import { tap } from './commands/tap.js';
@@ -33,10 +32,5 @@ program
   .command('chat')
   .description('Open interactive chat with agents')
   .action(chat);
-
-program
-  .command('status')
-  .description('Show configured agents')
-  .action(status);
 
 program.parse();

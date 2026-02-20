@@ -37,13 +37,18 @@ export async function up(): Promise<void> {
 
   console.log(chalk.green('\nWorkspace ready.\n'));
 
-  // Start server inline — resolves when listening
+  // Start server inline — resolves when listening (HTTP + WebSocket on the same port)
   const port = settings.serverPort || DEFAULT_PORT;
   const srv = new MinionsServer();
   await srv.start(port);
 
-  console.log(chalk.bold.green('\n✓ Server ready. Starting daemon...\n'));
-  console.log(chalk.dim('Press Ctrl+C to stop.\n'));
+  const roles = Object.keys(settings.roles);
+  console.log(chalk.bold.green('\n✓ Minions ready!\n'));
+  console.log(chalk.dim('  minions chat          Open group chat'));
+  for (const role of roles) {
+    console.log(chalk.dim(`  minions tap ${role.padEnd(12)}Tap into ${role} session`));
+  }
+  console.log(chalk.dim('\nPress Ctrl+C to stop.\n'));
 
   // Start daemon — blocks until SIGINT/SIGTERM
   await daemon();
