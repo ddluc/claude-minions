@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { AgentRole, Settings } from '../../../core/types.js';
-import { buildClaudeMd } from '../lib/templates.js';
+import { buildAgentPrompt } from '../lib/prompts.js';
 import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js';
 import { parseEnvFile } from '../lib/utils.js';
 
@@ -28,7 +28,7 @@ export class WorkspaceService {
   writeClaudeMd(role: AgentRole, hasSshKey = false): void {
     const roleConfig = this.settings.roles[role] || {};
     const roleDir = path.join(this.minionsDir, role);
-    const content = buildClaudeMd(role, roleConfig, this.workspaceRoot, this.settings.repos, hasSshKey, roleDir);
+    const content = buildAgentPrompt(role, roleConfig, this.workspaceRoot, this.settings.repos, hasSshKey, roleDir);
     fs.writeFileSync(path.join(roleDir, 'CLAUDE.md'), content);
   }
 

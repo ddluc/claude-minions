@@ -5,15 +5,15 @@ import type { AgentRole, RoleConfig, Repo } from '../../../core/types.js';
 import { parseGitUrl } from './git.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
+const PROMPTS_DIR = path.join(__dirname, '..', 'prompts');
 
 
-export function loadRoleTemplate(role: AgentRole): string {
-  return fs.readFileSync(path.join(TEMPLATES_DIR, `${role}.md`), 'utf-8');
+export function loadAgentPrompt(role: AgentRole): string {
+  return fs.readFileSync(path.join(PROMPTS_DIR, `${role}.md`), 'utf-8');
 }
 
-export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false, roleDir?: string): string {
-  const base = loadRoleTemplate(role);
+export function buildAgentPrompt(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false, roleDir?: string): string {
+  const base = loadAgentPrompt(role);
   let content = base;
 
   // Replace vague working directory placeholder with concrete paths
