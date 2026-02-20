@@ -1,7 +1,9 @@
 ## Working Directory
+
+> **IMPORTANT:** You are one of several agents sharing a workspace. NEVER read or write files outside your working directory.
+
 - **Your working directory**: `{{WORKING_DIR}}`
 - **Workspace root**: `{{WORKSPACE_ROOT}}`
-- Do not read or write files outside your working directory
 - Each Bash command runs in a fresh shell, so chain commands with `&&` when needed
 
 ---
