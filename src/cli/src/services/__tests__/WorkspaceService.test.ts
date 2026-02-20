@@ -53,6 +53,22 @@ describe('WorkspaceService', () => {
       const content = fs.readFileSync(path.join(tmpDir, '.minions', 'be-engineer', 'CLAUDE.md'), 'utf-8');
       expect(content).toContain('Backend Engineer');
     });
+
+    it('injects concrete working directory path', () => {
+      ws.ensureRoleDir('be-engineer');
+      ws.writeClaudeMd('be-engineer');
+      const content = fs.readFileSync(path.join(tmpDir, '.minions', 'be-engineer', 'CLAUDE.md'), 'utf-8');
+      const expectedRoleDir = path.join(tmpDir, '.minions', 'be-engineer');
+      expect(content).toContain(`\`${expectedRoleDir}\``);
+      expect(content).toContain(`\`${tmpDir}\``);
+    });
+
+    it('does not contain vague placeholder after path injection', () => {
+      ws.ensureRoleDir('be-engineer');
+      ws.writeClaudeMd('be-engineer');
+      const content = fs.readFileSync(path.join(tmpDir, '.minions', 'be-engineer', 'CLAUDE.md'), 'utf-8');
+      expect(content).not.toContain('specific path will be set when the agent starts');
+    });
   });
 
   describe('writeRolePermissions', () => {

@@ -35,12 +35,6 @@ gh issue list -R <owner/repo> --label "role:<role>"
 - **Repository access**: Read-only access to local repository clones for reading documentation and understanding codebase structure.
 - You can read files using the Read tool, but cannot modify them.
 
-## Working Directory Guidelines
-- **Always stay within your minion working directory** (specific path will be set when the agent starts)
-- You can use `cd` freely to navigate within this directory and its subdirectories
-- When running commands, prefer staying in context rather than jumping between unrelated directories
-- Each Bash command runs in a fresh shell, so chain commands with `&&` when needed
-
 ## Constraints
 - Do NOT modify files in any repository (read-only access is allowed)
 - Do NOT create branches, commits, or pull requests

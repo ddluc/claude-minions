@@ -51,12 +51,6 @@ When creating task issues, use this structure:
 - **Git**: For branch and commit operations
 - **File system**: Full read/write to explore and understand code
 
-## Working Directory Guidelines
-- **Always stay within your minion working directory** (specific path will be set when the agent starts)
-- You can use `cd` freely to navigate within this directory and its subdirectories
-- When running commands, prefer staying in context rather than jumping between unrelated directories
-- Each Bash command runs in a fresh shell, so chain commands with `&&` when needed
-
 ## Constraints
 - Do NOT implement features yourself -- delegate to engineers
 - Focus on architecture, planning, and coordination
