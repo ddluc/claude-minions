@@ -25,14 +25,14 @@ export async function init(): Promise<void> {
     console.log(chalk.green('\nCreated minions.json\n'));
   }
 
-  // Setup workspace using WorkspaceService
+  // Create role directories (scaffolding only — CLAUDE.md and permissions are written by `up`)
   const workspace = new WorkspaceService(cwd, settings);
   const roles = Object.keys(settings.roles) as AgentRole[];
 
-  workspace.setupAllRoles();
+  for (const role of roles) {
+    workspace.ensureRoleDir(role as AgentRole);
+  }
   console.log(chalk.dim(`Created .minions/ directories for: ${roles.join(', ')}`));
-  console.log(chalk.dim('Created CLAUDE.md templates for each role'));
-  console.log(chalk.dim('Created .claude/settings.local.json for each role'));
 
   if (workspace.ensureEnvTemplate()) {
     console.log(chalk.dim('Created .env template'));
