@@ -27,12 +27,15 @@ export class MinionsServer {
     });
   }
 
-  start(port: number) {
-    this.server.listen(port, () => {
-      console.log(`Minions server running on port ${port}`);
-      console.log(`WebSocket endpoint: ws://localhost:${port}/ws`);
-      console.log(`API: GET http://localhost:${port}/api/health`);
-      console.log(`API: GET http://localhost:${port}/api/chat/history`);
+  start(port: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.server.listen(port, () => {
+        console.log(`Minions server running on port ${port}`);
+        console.log(`WebSocket endpoint: ws://localhost:${port}/ws`);
+        console.log(`API: GET http://localhost:${port}/api/health`);
+        console.log(`API: GET http://localhost:${port}/api/chat/history`);
+        resolve();
+      });
     });
   }
 }
