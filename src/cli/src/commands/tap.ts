@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import path from 'path';
-import { spawnSync } from 'node:child_process';
 import WebSocket from 'ws';
 import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
@@ -8,6 +7,7 @@ import type { ChatControlMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { ProcessManager } from '../services/ProcessManager.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
+import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 
 /**
@@ -159,33 +159,34 @@ export async function tap(role: string): Promise<void> {
     console.log(chalk.dim('Server not running — skipping pause'));
   }
 
-  // Build claude CLI arguments
-  const claudeArgs: string[] = [];
-
-  if (sessionId) {
-    claudeArgs.push('--resume', sessionId);
-  }
-
-  if (settings.mode === 'yolo') {
-    claudeArgs.push('--dangerously-skip-permissions');
-  }
-
-  const roleConfig = settings.roles[agentRole];
-  if (roleConfig?.model) {
-    claudeArgs.push('--model', roleConfig.model);
-  }
-
   // Launch claude interactively
   console.log(chalk.bold.green(`\nTapping into ${role} agent...`));
   console.log(chalk.dim(`Working directory: ${roleDir}`));
   console.log(chalk.dim(`CLAUDE.md loaded from this directory\n`));
 
-  const result = spawnSync('claude', claudeArgs, {
-    cwd: roleDir,
-    stdio: 'inherit',
-    shell: true,
-    env: { ...process.env, ...envVars },
-  });
+  const runner = new ClaudeRunner();
+  let exitCode: number;
+
+  try {
+    exitCode = runner.spawnInteractive({
+      roleDir,
+      sessionId,
+      model: settings.roles[agentRole]?.model,
+      yolo: settings.mode === 'yolo',
+      envVars,
+    });
+  } catch (err) {
+    // Resume chat before exiting on error
+    const freshWs = await connectWebSocket(serverUrl);
+    if (freshWs) {
+      try { await sendControl(freshWs, 'resume', role); } catch {}
+      freshWs.close();
+    }
+    console.error(chalk.red('Failed to start claude CLI'));
+    console.error(chalk.dim('Make sure claude is installed: npm install -g @anthropic-ai/claude-code'));
+    console.error(chalk.dim(err instanceof Error ? err.message : String(err)));
+    process.exit(1);
+  }
 
   // Resume chat via fresh WS connection
   const freshWs = await connectWebSocket(serverUrl);
@@ -202,12 +203,5 @@ export async function tap(role: string): Promise<void> {
     console.log(chalk.dim('Could not reconnect to server — chat may still be paused'));
   }
 
-  if (result.error) {
-    console.error(chalk.red('Failed to start claude CLI'));
-    console.error(chalk.dim('Make sure claude is installed: npm install -g @anthropic-ai/claude-code'));
-    console.error(chalk.dim(result.error.message));
-    process.exit(1);
-  }
-
-  process.exit(result.status ?? 0);
+  process.exit(exitCode);
 }
