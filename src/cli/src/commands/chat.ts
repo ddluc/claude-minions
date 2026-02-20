@@ -74,24 +74,43 @@ export async function chat(): Promise<void> {
     process.exit(0);
   });
 
+  // Buffer lines from rapid paste events and combine into one message
+  const PASTE_DEBOUNCE_MS = 50;
+  let pasteBuffer: string[] = [];
+  let pasteTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function flushPasteBuffer(): void {
+    const lines = pasteBuffer.splice(0);
+    const content = lines.join('\n');
+
+    ws.send(JSON.stringify({
+      type: 'chat',
+      from: 'user',
+      content,
+      timestamp: new Date().toISOString(),
+    }));
+
+    // Clear buffered readline input lines, then echo formatted
+    readline.moveCursor(process.stdout, 0, -lines.length);
+    readline.clearScreenDown(process.stdout);
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+    separator();
+    console.log(`${chalk.bold.white('you')} ${chalk.dim(`(${time})`)}`);
+    console.log(content);
+    console.log();
+
+    rl.prompt();
+  }
+
   rl.on('line', (input) => {
     const trimmed = input.trim();
     if (trimmed) {
-      ws.send(JSON.stringify({
-        type: 'chat',
-        from: 'user',
-        content: trimmed,
-        timestamp: new Date().toISOString(),
-      }));
-
-      // Echo the user's own message formatted like agent messages
-      const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-      separator();
-      console.log(`${chalk.bold.white('you')} ${chalk.dim(`(${time})`)}`);
-      console.log(trimmed);
-      console.log();
+      pasteBuffer.push(trimmed);
+      if (pasteTimer) clearTimeout(pasteTimer);
+      pasteTimer = setTimeout(flushPasteBuffer, PASTE_DEBOUNCE_MS);
+    } else {
+      rl.prompt();
     }
-    rl.prompt();
   });
 
   rl.on('close', () => {
