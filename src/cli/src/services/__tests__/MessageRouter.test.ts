@@ -11,10 +11,10 @@ function makeMsg(content: string, from = 'user'): ChatMessage {
 function makeRouter(overrides?: {
   enabledRoles?: AgentRole[];
   maxDepth?: number;
-  onProcess?: (role: AgentRole, prompt: string) => ProcessResult;
+  onProcess?: (role: AgentRole, prompt: string) => Promise<ProcessResult>;
   onSend?: (msg: ChatMessage) => void;
 }) {
-  const onProcess = overrides?.onProcess ?? vi.fn().mockReturnValue({ response: 'ok', error: undefined });
+  const onProcess = overrides?.onProcess ?? vi.fn().mockResolvedValue({ response: 'ok', error: undefined });
   const onSend = overrides?.onSend ?? vi.fn();
   const router = new MessageRouter({
     enabledRoles: overrides?.enabledRoles ?? ['cao', 'be-engineer', 'pm', 'qa', 'fe-engineer'],
@@ -25,9 +25,9 @@ function makeRouter(overrides?: {
   return { router, onProcess, onSend };
 }
 
-// Helper to wait for all pending microtasks/promises
+// Helper to wait for all pending microtasks/promises to settle
 function flush() {
-  return new Promise(resolve => setTimeout(resolve, 0));
+  return new Promise(resolve => setTimeout(resolve, 10));
 }
 
 describe('MessageRouter', () => {
@@ -69,16 +69,10 @@ describe('MessageRouter', () => {
   });
 
   it('depth limit — message dropped at maxDepth', async () => {
-    const { router, onProcess } = makeRouter({ maxDepth: 2 });
-    // Manually test by routing a chain: the response @mentions another role
-    // Route at depth 0 → response @mentions be-engineer (depth 1) → response @mentions pm (depth 2, dropped)
-    let callCount = 0;
-    const onProcessChain = vi.fn().mockImplementation((role: AgentRole) => {
-      callCount++;
-      if (role === 'cao') return { response: 'hi @be-engineer' };
-      if (role === 'be-engineer') return { response: 'hi @pm' };
-      return { response: 'done' };
-    });
+    const onProcessChain = vi.fn()
+      .mockResolvedValueOnce({ response: 'hi @be-engineer' })  // cao depth 0
+      .mockResolvedValueOnce({ response: 'hi @pm' })           // be-engineer depth 1
+      .mockResolvedValue({ response: 'done' });                 // pm depth 2 — should be dropped
     const onSend = vi.fn();
     const chainRouter = new MessageRouter({
       enabledRoles: ['cao', 'be-engineer', 'pm'],
@@ -98,8 +92,8 @@ describe('MessageRouter', () => {
 
   it('response re-routing — @mentions in response trigger enqueue at depth + 1', async () => {
     const onProcess = vi.fn()
-      .mockReturnValueOnce({ response: 'hey @be-engineer do this' }) // cao's response
-      .mockReturnValueOnce({ response: 'done' });                     // be-engineer's response
+      .mockResolvedValueOnce({ response: 'hey @be-engineer do this' }) // cao's response
+      .mockResolvedValueOnce({ response: 'done' });                     // be-engineer's response
     const onSend = vi.fn();
     const router = new MessageRouter({
       enabledRoles: ['cao', 'be-engineer'],
@@ -115,7 +109,7 @@ describe('MessageRouter', () => {
   });
 
   it('self-mention in response — not re-routed', async () => {
-    const onProcess = vi.fn().mockReturnValue({ response: '@cao here is my answer' });
+    const onProcess = vi.fn().mockResolvedValue({ response: '@cao here is my answer' });
     const { router } = makeRouter({ onProcess });
     router.route(makeMsg('@cao what do you think?'));
     await flush();
@@ -125,8 +119,8 @@ describe('MessageRouter', () => {
 
   it('error from onProcess — error message sent via onSend, queue continues', async () => {
     const onProcess = vi.fn()
-      .mockReturnValueOnce({ response: '', error: 'Claude CLI not found' })
-      .mockReturnValueOnce({ response: 'all good' });
+      .mockResolvedValueOnce({ response: '', error: 'Claude CLI not found' })
+      .mockResolvedValueOnce({ response: 'all good' });
     const onSend = vi.fn();
     const router = new MessageRouter({
       enabledRoles: ['cao', 'be-engineer'],
@@ -149,7 +143,7 @@ describe('MessageRouter', () => {
     const processed: string[] = [];
     const onProcess = vi.fn().mockImplementation((_role: AgentRole, prompt: string) => {
       processed.push(prompt);
-      return { response: 'ok' };
+      return Promise.resolve({ response: 'ok' });
     });
     const { router } = makeRouter({ onProcess });
     router.route(makeMsg('@cao first'));
@@ -166,7 +160,7 @@ describe('MessageRouter', () => {
     const processingOrder: AgentRole[] = [];
     const onProcess = vi.fn().mockImplementation((role: AgentRole) => {
       processingOrder.push(role);
-      return { response: 'ok' };
+      return Promise.resolve({ response: 'ok' });
     });
     const { router } = makeRouter({ onProcess });
     router.route(makeMsg('@cao hello'));
@@ -178,7 +172,7 @@ describe('MessageRouter', () => {
 
   it('onSend called with response message after successful processing', async () => {
     const { router, onSend } = makeRouter({
-      onProcess: vi.fn().mockReturnValue({ response: 'here is my answer' }),
+      onProcess: vi.fn().mockResolvedValue({ response: 'here is my answer' }),
     });
     router.route(makeMsg('@cao tell me something'));
     await flush();
@@ -190,24 +184,19 @@ describe('MessageRouter', () => {
     expect(sentMsg![0].type).toBe('chat');
   });
 
-  it('isProcessing returns true while queue is active', async () => {
-    let resolveProcess!: () => void;
-    const blockingProcess = vi.fn().mockImplementation(() => {
-      return { response: 'done' };
+  it('isProcessing returns false after queue drains', async () => {
+    const { router } = makeRouter({
+      onProcess: vi.fn().mockResolvedValue({ response: 'done' }),
     });
-    const { router } = makeRouter({ onProcess: blockingProcess });
     expect(router.isProcessing('cao' as AgentRole)).toBe(false);
     router.route(makeMsg('@cao hello'));
-    // After routing but before flush, processing may or may not have started
     await flush();
-    expect(router.isProcessing('cao' as AgentRole)).toBe(false); // done after flush
+    expect(router.isProcessing('cao' as AgentRole)).toBe(false);
   });
 
   it('getQueueSize returns correct count', () => {
     const { router } = makeRouter({
-      // onProcess that never resolves so queue stays populated — but since
-      // processQueue is async and we don't flush, check before it drains
-      onProcess: vi.fn().mockReturnValue({ response: 'ok' }),
+      onProcess: vi.fn().mockResolvedValue({ response: 'ok' }),
     });
     expect(router.getQueueSize('cao' as AgentRole)).toBe(0);
   });

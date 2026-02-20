@@ -44,11 +44,11 @@ export async function daemon(): Promise<void> {
   const router = new MessageRouter({
     enabledRoles: Object.keys(settings.roles) as AgentRole[],
     maxDepth: 5,
-    onProcess: (role, prompt) => {
+    onProcess: async (role, prompt) => {
       const roleDir = workspace.getRoleDir(role);
       const sessionId = workspace.readSessionId(role);
       if (sessionId) console.log(`[${role}] Resuming session ${sessionId}`);
-      const result = runner.spawnHeadless({
+      const result = await runner.spawnHeadless({
         roleDir,
         prompt,
         sessionId,
