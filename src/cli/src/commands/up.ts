@@ -21,18 +21,13 @@ export async function up(): Promise<void> {
     console.log(chalk.dim(`  Configured .minions/${role}/`));
   }
 
-  const cloneResults = await workspace.cloneAllRepos();
+  const cloneResults = workspace.cloneAllRepos();
   for (const { role, repoName, cloned } of cloneResults) {
     if (cloned) {
       console.log(chalk.green(`  Cloned ${repoName} into .minions/${role}/${repoName}`));
     } else {
       console.log(chalk.dim(`  ${repoName} already present for ${role}`));
     }
-  }
-
-  const labelResults = await workspace.ensureGitHubLabels();
-  for (const repoPath of labelResults) {
-    console.log(chalk.dim(`  Labels verified on ${repoPath}`));
   }
 
   console.log(chalk.green('\nWorkspace ready.\n'));

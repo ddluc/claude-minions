@@ -30,11 +30,3 @@ export const DEFAULT_PERMISSIONS = {
   ],
   deny: [] as string[],
 };
-
-export const ROLE_LABEL_COLORS: Record<string, string> = {
-  'pm': 'D4C5F9',
-  'cao': 'F9D0C4',
-  'fe-engineer': 'BFD4F2',
-  'be-engineer': 'B4E197',
-  'qa': 'FEF2C0',
-};
