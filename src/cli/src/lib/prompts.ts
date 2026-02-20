@@ -7,29 +7,33 @@ import { parseGitUrl } from './git.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROMPTS_DIR = path.join(__dirname, '..', 'prompts');
 
+// Delimiters separating sections in core.md: working directory, ssh, repository context
+const CORE_SECTION_DELIMITER = '\n---\n';
 
 export function loadAgentPrompt(role: AgentRole): string {
   return fs.readFileSync(path.join(PROMPTS_DIR, `${role}.md`), 'utf-8');
 }
 
+function loadCoreSections(): [string, string, string] {
+  const core = fs.readFileSync(path.join(PROMPTS_DIR, 'core.md'), 'utf-8');
+  const [workingDir = '', ssh = '', repo = ''] = core.split(CORE_SECTION_DELIMITER);
+  return [workingDir.trim(), ssh.trim(), repo.trim()];
+}
+
 export function buildAgentPrompt(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false, roleDir?: string): string {
-  const base = loadAgentPrompt(role);
-  let content = base;
+  const [workingDirSection, sshSection, repoSection] = loadCoreSections();
+  let content = loadAgentPrompt(role);
 
-  // Replace vague working directory placeholder with concrete paths
   if (roleDir) {
-    content = content.replace(
-      '- **Always stay within your minion working directory** (specific path will be set when the agent starts)',
-      `- **Your working directory**: \`${roleDir}\`\n- **Workspace root**: \`${workspaceRoot}\`\n- Do not read or write files outside your working directory`,
-    );
+    content += '\n\n' + workingDirSection
+      .replace('{{WORKING_DIR}}', roleDir)
+      .replace('{{WORKSPACE_ROOT}}', workspaceRoot);
   }
 
-  // Inject SSH authentication info if SSH key is configured
   if (hasSshKey) {
-    content += `\n## SSH Authentication\n\nAn SSH key is available at \`ssh_key\` in your working directory. Each repository has been pre-configured with \`git config core.sshCommand\` to use this key automatically.\n\n**You do NOT need to manually configure SSH** - all git operations within repository directories will authenticate automatically.\n\n`;
+    content += '\n\n' + sshSection;
   }
 
-  // Inject repository context so agents know owner/repo for gh commands
   if (repos.length > 0) {
     const repoLines = repos.map(r => {
       try {
@@ -40,7 +44,7 @@ export function buildAgentPrompt(role: AgentRole, config: RoleConfig, workspaceR
       }
     }).join('\n');
 
-    content += `\n## Repository Context\n\nYour accessible repositories:\n${repoLines}\n\nUse \`-R owner/repo\` with \`gh\` commands to target specific repos.\n`;
+    content += '\n\n' + repoSection.replace('{{REPO_LIST}}', repoLines);
   }
 
   // Append project-specific instructions

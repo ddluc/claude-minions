@@ -7,25 +7,21 @@ describe('buildAgentPrompt', () => {
   const workspaceRoot = '/workspace/project';
   const roleDir = '/workspace/project/.minions/be-engineer';
 
-  it('includes the role template content', () => {
+  it('includes the role prompt content', () => {
     const result = buildAgentPrompt(role, config, workspaceRoot);
     expect(result).toContain('Backend Engineer');
   });
 
-  it('replaces placeholder with concrete working directory when roleDir is provided', () => {
+  it('appends working directory section with concrete paths when roleDir is provided', () => {
     const result = buildAgentPrompt(role, config, workspaceRoot, [], false, roleDir);
     expect(result).toContain(`\`${roleDir}\``);
     expect(result).toContain(`\`${workspaceRoot}\``);
   });
 
-  it('does not contain vague placeholder when roleDir is provided', () => {
-    const result = buildAgentPrompt(role, config, workspaceRoot, [], false, roleDir);
-    expect(result).not.toContain('specific path will be set when the agent starts');
-  });
-
-  it('retains vague placeholder when roleDir is not provided', () => {
+  it('does not append working directory section when roleDir is not provided', () => {
     const result = buildAgentPrompt(role, config, workspaceRoot);
-    expect(result).toContain('specific path will be set when the agent starts');
+    expect(result).not.toContain('{{WORKING_DIR}}');
+    expect(result).not.toContain('Your working directory');
   });
 
   it('appends SSH section when hasSshKey is true', () => {
@@ -43,5 +39,10 @@ describe('buildAgentPrompt', () => {
     const result = buildAgentPrompt(role, config, workspaceRoot, repos);
     expect(result).toContain('Repository Context');
     expect(result).toContain('owner/my-repo');
+  });
+
+  it('does not append repository context when no repos provided', () => {
+    const result = buildAgentPrompt(role, config, workspaceRoot);
+    expect(result).not.toContain('Repository Context');
   });
 });
