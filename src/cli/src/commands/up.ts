@@ -5,8 +5,6 @@ import chalk from 'chalk';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { ProcessManager } from '../services/ProcessManager.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
-import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
-import type { AgentRole } from '../../../core/types.js';
 
 export async function up(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
@@ -29,48 +27,25 @@ export async function up(): Promise<void> {
   // Workspace prep — synchronous, visible output
   console.log(chalk.bold('Preparing workspace...\n'));
   const workspace = new WorkspaceService(workspaceRoot, settings);
-  const roles = Object.keys(settings.roles) as AgentRole[];
   const hasSshKey = !!settings.ssh;
 
-  for (const role of roles) {
-    workspace.setupRole(role, hasSshKey);
-    if (hasSshKey) {
-      workspace.copySshKey(role);
-    }
+  workspace.setupAllRoles(hasSshKey);
+  for (const role of Object.keys(settings.roles)) {
     console.log(chalk.dim(`  Configured .minions/${role}/`));
   }
 
-  // Clone and configure repos for each role
-  for (const role of roles) {
-    const roleDir = workspace.getRoleDir(role);
-    for (const repo of settings.repos) {
-      const targetDir = path.join(roleDir, repo.path);
-      const sshKeyPath = hasSshKey ? path.join(roleDir, 'ssh_key') : undefined;
-
-      const cloned = await cloneRepo(repo.url, targetDir, sshKeyPath);
-      if (cloned) {
-        console.log(chalk.green(`  Cloned ${repo.name} into .minions/${role}/${repo.path}`));
-      } else {
-        console.log(chalk.dim(`  ${repo.name} already present for ${role}`));
-      }
-
-      try {
-        await configureRepo(targetDir, sshKeyPath);
-      } catch {
-        console.log(chalk.yellow(`  Warning: could not configure ${repo.name} for ${role}`));
-      }
+  const cloneResults = await workspace.cloneAllRepos();
+  for (const { role, repoName, cloned } of cloneResults) {
+    if (cloned) {
+      console.log(chalk.green(`  Cloned ${repoName} into .minions/${role}/${repoName}`));
+    } else {
+      console.log(chalk.dim(`  ${repoName} already present for ${role}`));
     }
   }
 
-  // Ensure GitHub labels (once per repo, not per role)
-  for (const repo of settings.repos) {
-    try {
-      const { owner, repo: repoName } = parseGitUrl(repo.url);
-      await ensureLabels(`${owner}/${repoName}`, roles);
-      console.log(chalk.dim(`  Labels verified on ${owner}/${repoName}`));
-    } catch {
-      console.log(chalk.yellow(`  Warning: could not verify labels for ${repo.name}`));
-    }
+  const labelResults = await workspace.ensureGitHubLabels();
+  for (const repoPath of labelResults) {
+    console.log(chalk.dim(`  Labels verified on ${repoPath}`));
   }
 
   console.log(chalk.green('\nWorkspace ready.\n'));

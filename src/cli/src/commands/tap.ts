@@ -84,7 +84,7 @@ export async function tap(role: string): Promise<void> {
   } catch (err) {
     await chatControl.resume(role);
     console.error(chalk.red('Failed to start claude CLI'));
-    console.error(chalk.dim('Make sure claude is installed: npm install -g @anthropic-ai/claude-code'));
+    console.error(chalk.dim('Make sure claude is installed: curl -fsSL https://claude.ai/install.sh | bash'));
     console.error(chalk.dim(err instanceof Error ? err.message : String(err)));
     process.exit(1);
   }
