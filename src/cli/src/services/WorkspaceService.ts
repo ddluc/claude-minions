@@ -4,6 +4,7 @@ import type { AgentRole, Settings } from '../../../core/types.js';
 import { buildAgentPrompt } from '../lib/prompts.js';
 import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js';
 import { parseEnvFile } from '../lib/utils.js';
+import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 
 export class WorkspaceService {
   private minionsDir: string;
@@ -51,13 +52,56 @@ export class WorkspaceService {
   }
 
   /**
-   * Setup all enabled roles.
+   * Setup all enabled roles. If hasSshKey, also copies the SSH key into each role directory.
    */
   setupAllRoles(hasSshKey = false): void {
     const roles = Object.keys(this.settings.roles) as AgentRole[];
     for (const role of roles) {
       this.setupRole(role, hasSshKey);
+      if (hasSshKey) {
+        this.copySshKey(role);
+      }
     }
+  }
+
+  /**
+   * Clone and configure repos for all roles. Returns a result per role/repo pair.
+   */
+  async cloneAllRepos(): Promise<{ role: AgentRole; repoName: string; cloned: boolean }[]> {
+    const roles = Object.keys(this.settings.roles) as AgentRole[];
+    const results: { role: AgentRole; repoName: string; cloned: boolean }[] = [];
+
+    for (const role of roles) {
+      const roleDir = this.getRoleDir(role);
+      const sshKeyPath = this.settings.ssh ? path.join(roleDir, 'ssh_key') : undefined;
+
+      for (const repo of this.settings.repos) {
+        const targetDir = path.join(roleDir, repo.path);
+        const cloned = await cloneRepo(repo.url, targetDir, sshKeyPath);
+        try { await configureRepo(targetDir, sshKeyPath); } catch {}
+        results.push({ role, repoName: repo.name, cloned });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Ensure GitHub labels exist for all configured repos. Returns the repo paths that succeeded.
+   */
+  async ensureGitHubLabels(): Promise<string[]> {
+    const roles = Object.keys(this.settings.roles) as AgentRole[];
+    const verified: string[] = [];
+
+    for (const repo of this.settings.repos) {
+      try {
+        const { owner, repo: repoName } = parseGitUrl(repo.url);
+        await ensureLabels(`${owner}/${repoName}`, roles);
+        verified.push(`${owner}/${repoName}`);
+      } catch {}
+    }
+
+    return verified;
   }
 
   /**
