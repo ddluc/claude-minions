@@ -84,7 +84,9 @@ export async function chat(): Promise<void> {
         timestamp: new Date().toISOString(),
       }));
 
-      // Echo the user's own message formatted like agent messages
+      // Clear the readline input line, then echo formatted
+      readline.moveCursor(process.stdout, 0, -1);
+      readline.clearLine(process.stdout, 0);
       const time = new Date().toLocaleTimeString('en-US', { hour12: false });
       separator();
       console.log(`${chalk.bold.white('you')} ${chalk.dim(`(${time})`)}`);
