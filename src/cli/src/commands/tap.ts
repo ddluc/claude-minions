@@ -7,6 +7,7 @@ import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
 import type { ChatControlMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { parseEnvFile } from '../lib/utils.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
 import { buildClaudeMd } from '../lib/templates.js';
 
@@ -125,23 +126,9 @@ export async function tap(role: string): Promise<void> {
 
   // Parse .env and inject variables into the spawned process environment
   const envSource = path.join(workspaceRoot, '.env');
-  const envVars: Record<string, string> = {};
-  if (fs.existsSync(envSource)) {
-    const envContent = fs.readFileSync(envSource, 'utf-8');
-    for (const line of envContent.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eqIndex = trimmed.indexOf('=');
-      if (eqIndex === -1) continue;
-      const key = trimmed.slice(0, eqIndex).trim();
-      let value = trimmed.slice(eqIndex + 1).trim();
-      // Strip surrounding quotes
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
-      }
-      envVars[key] = value;
-    }
-  }
+  const envVars = fs.existsSync(envSource)
+    ? parseEnvFile(fs.readFileSync(envSource, 'utf-8'))
+    : {};
 
   // Regenerate CLAUDE.md so template changes take effect
   fs.writeFileSync(

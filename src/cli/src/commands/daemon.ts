@@ -3,26 +3,15 @@ import fs from 'fs-extra';
 import { spawnSync } from 'child_process';
 import { DaemonWebSocketClient } from '../agent/DaemonWebSocketClient.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { parseMentions } from '../lib/utils.js';
 import type { Message, ChatMessage } from '../../../core/messages.js';
 import type { AgentRole } from '../../../core/types.js';
 
 const MAX_ROUTING_DEPTH = 5;
-const ROLE_MENTION_REGEX = /@(pm|cao|fe-engineer|be-engineer|qa)\b/g;
 
 interface QueuedMessage {
   msg: ChatMessage;
   depth: number;
-}
-
-function parseMentions(content: string): Set<string> {
-  const mentions = new Set<string>();
-  let match;
-  while ((match = ROLE_MENTION_REGEX.exec(content)) !== null) {
-    mentions.add(match[1]);
-  }
-  // Reset regex lastIndex for next call
-  ROLE_MENTION_REGEX.lastIndex = 0;
-  return mentions;
 }
 
 // Setup logging to file

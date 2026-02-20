@@ -2,20 +2,8 @@ import WebSocket from 'ws';
 import readline from 'readline';
 import chalk from 'chalk';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { colorRole } from '../lib/utils.js';
 import { DEFAULT_PORT } from '../../../core/constants.js';
-
-const ROLE_COLORS: Record<string, (text: string) => string> = {
-  'cao': chalk.cyan,
-  'pm': chalk.magenta,
-  'fe-engineer': chalk.yellow,
-  'be-engineer': chalk.green,
-  'qa': chalk.blue,
-};
-
-function colorRole(role: string): string {
-  const colorFn = ROLE_COLORS[role] || chalk.white;
-  return colorFn(role);
-}
 
 export async function chat(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
