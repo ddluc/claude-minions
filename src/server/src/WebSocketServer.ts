@@ -1,17 +1,17 @@
 import { WebSocketServer as WSServer, WebSocket } from 'ws';
 import type { Server } from 'http';
-import { MessageRouter, type ClientConnection } from './MessageRouter.js';
+import { ChatBroadcaster, type ClientConnection } from './ChatBroadcaster.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class WebSocketServer {
   private wss: WSServer;
   private clients: Map<string, ClientConnection>;
-  private router: MessageRouter;
+  private router: ChatBroadcaster;
 
   constructor(server: Server) {
     this.wss = new WSServer({ server, path: '/ws' });
     this.clients = new Map();
-    this.router = new MessageRouter(this.clients);
+    this.router = new ChatBroadcaster(this.clients);
 
     this.wss.on('connection', (ws) => this.handleConnection(ws));
   }

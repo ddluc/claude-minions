@@ -9,7 +9,7 @@ export interface ClientConnection {
   connectedAt: string;
 }
 
-export class MessageRouter {
+export class ChatBroadcaster {
   private paused = false;
   private chatHistory: ChatMessage[] = [];
 
