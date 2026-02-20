@@ -20,7 +20,7 @@ export class ChatBroadcaster {
     return this.chatHistory.slice(-capped);
   }
 
-  route(rawMessage: unknown, senderId: string) {
+  handle(rawMessage: unknown, senderId: string) {
     try {
       const message = validateMessage(rawMessage);
 
