@@ -25,7 +25,8 @@ export const DEFAULT_PERMISSIONS = {
     "Bash(mv *)",
     "Bash(echo *)",
     "Bash(chmod *)",
-    "Bash(pwd)"   
+    "Bash(pwd)",
+    "Bash(curl *)"
   ],
   deny: [] as string[],
 };
