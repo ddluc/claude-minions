@@ -19,13 +19,23 @@ export class MinionsServer {
     this.app.get('/api/health', (req, res) => {
       res.json({ status: 'ok' });
     });
+
+    this.app.get('/api/chat/history', (req, res) => {
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 10, 1), 100);
+      const messages = this.wss.getChatHistory(limit);
+      res.json({ messages });
+    });
   }
 
-  start(port: number) {
-    this.server.listen(port, () => {
-      console.log(`Minions server running on port ${port}`);
-      console.log(`WebSocket endpoint: ws://localhost:${port}/ws`);
-      console.log(`API: GET http://localhost:${port}/api/health`);
+  start(port: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.server.listen(port, () => {
+        console.log(`Minions server running on port ${port}`);
+        console.log(`WebSocket endpoint: ws://localhost:${port}/ws`);
+        console.log(`API: GET http://localhost:${port}/api/health`);
+        console.log(`API: GET http://localhost:${port}/api/chat/history`);
+        resolve();
+      });
     });
   }
 }

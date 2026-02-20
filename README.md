@@ -4,12 +4,17 @@
 
 Claude Minions coordinates multiple AI agents — each with a defined role — to collaborate on your codebase through GitHub. Agents communicate via group chat, create issues, implement features on branches, and open PRs for your review.
 
+![Claude Minions Demo — multi-agent coordination via group chat](docs/demo.png)
+
+> **Note:** In the default `ask` mode, agents have limited autonomy in daemon/chat mode — Claude Code's safety prompts cannot be approved without an interactive terminal. You can manually approve interactively via `minions tap`. For fully autonomous multi-agent workflows, run in `yolo` mode on a sandboxed server (EC2, Docker). See [Permissions & Modes](#permissions--modes) for details.
+
 ## Key Features
 
-- **Multi-agent collaboration** — PM, architect, engineers, and QA agents work together through a shared chat, coordinating via @mentions
+- **Multi-agent collaboration** — PM, architect, engineers, and QA agents work together through a shared chat, coordinating via `@mentions`
 - **Isolated workspaces** — Each agent gets its own repository clones and working directory. No conflicts, parallel work by default
-- **GitHub-native workflow** — Agents create issues, open PRs, and use labels for task assignment. Your existing tools just work
+- **GitHub-native workflow** — Agents create issues, open PRs, and use labels for task assignment.
 - **Interactive tap-in** — Drop into any agent's session to see its full conversation history and collaborate directly
+- **Session persistence** — Agents resume where they left off across restarts, retaining full conversation context
 
 ## Agent Roles
 
@@ -26,8 +31,9 @@ Claude Minions coordinates multiple AI agents — each with a defined role — t
 ### Prerequisites
 
 - Node.js 20+
-- [Claude Code CLI](https://www.npmjs.com/package/@anthropic-ai/claude-code) installed globally
-- GitHub account with SSH access configured
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated (`curl -fsSL https://claude.ai/install.sh | bash`, then `claude` to log in)
+- GitHub personal access token (for agent GitHub operations)
+- GitHub account with SSH access configured (for repository cloning)
 
 ### Installation
 
@@ -37,6 +43,16 @@ cd claude-minions
 npm install
 npm link  # Makes 'minions' globally available
 ```
+
+### Environment Variables
+
+Create a `.env` file in your project root with your GitHub token (or let `minions init` generate a template):
+
+```
+GITHUB_TOKEN=ghp_your_github_personal_access_token
+```
+
+The `GITHUB_TOKEN` is injected into each agent's environment so they can create issues, open PRs, and interact with your repositories via the `gh` CLI.
 
 ### Initialize a Workspace
 
@@ -90,25 +106,94 @@ All configuration lives in `minions.json` at your project root.
 }
 ```
 
-### Reference
+### `mode`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `mode` | `"ask"` \| `"yolo"` | Permission mode. `ask` prompts for approval, `yolo` runs autonomously |
-| `repos` | array | Repositories to clone into each agent's workspace |
-| `repos[].name` | string | Display name for the repository |
-| `repos[].url` | string | Git clone URL (SSH or HTTPS) |
-| `repos[].path` | string | Local directory name for the clone |
-| `roles` | object | Which agent roles to enable and their config |
-| `roles.<role>.model` | `"opus"` \| `"sonnet"` \| `"haiku"` | Claude model for this role |
-| `roles.<role>.systemPrompt` | string | Custom system prompt text (optional) |
-| `roles.<role>.systemPromptFile` | string | Path to a custom system prompt file (optional) |
-| `roles.<role>.permissions` | object | Role-specific permission overrides (optional) |
-| `permissions` | object | Global permission rules applied to all roles |
-| `permissions.allow` | string[] | Permission rules to allow (e.g., `"Bash(npm run test *)"`) |
-| `permissions.deny` | string[] | Permission rules to deny (e.g., `"Bash(rm -rf *)"`) |
-| `ssh` | string | Path to SSH key for git operations |
-| `serverPort` | number | WebSocket server port (default: 3000) |
+`"ask"` or `"yolo"`. Controls the permission mode for all agents. In `ask` mode, Claude Code may prompt for approval on sensitive operations. In `yolo` mode, all operations are auto-approved. See [Permissions & Modes](#permissions--modes) for details.
+
+### `repos`
+
+Array of repositories to clone into each agent's workspace.
+
+```json
+"repos": [
+  {
+    "name": "my-app",
+    "url": "git@github.com:you/my-app.git",
+    "path": "my-app"
+  }
+]
+```
+
+Each repo is cloned into `.minions/<role>/<path>/` when the agent is initialized.
+
+### `roles`
+
+Object defining which agent roles to enable and how to configure them. Valid roles: `pm`, `cao`, `fe-engineer`, `be-engineer`, `qa`.
+
+```json
+"roles": {
+  "cao": { "model": "opus" },
+  "be-engineer": { "model": "sonnet" }
+}
+```
+
+Each role accepts:
+- **`model`** — Claude model to use: `"opus"`, `"sonnet"`, or `"haiku"`
+- **`systemPrompt`** — Custom system prompt text (optional)
+- **`systemPromptFile`** — Path to a custom system prompt file (optional)
+- **`permissions`** — Role-specific permission overrides with `allow` and `deny` arrays (optional)
+
+### `permissions`
+
+Global permission rules applied to all roles. These are merged with the default permissions.
+
+```json
+"permissions": {
+  "allow": ["Bash(npm run test *)"],
+  "deny": ["Bash(rm -rf *)"]
+}
+```
+
+Global deny rules always win — they cannot be overridden by role-level allow rules.
+
+### `ssh`
+
+Path to an SSH key for git operations. The key is copied into each agent's workspace directory so they can clone and push to repositories.
+
+```json
+"ssh": "~/.ssh/id_ed25519"
+```
+
+### `serverPort`
+
+WebSocket server port. Defaults to `3000`.
+
+```json
+"serverPort": 3000
+```
+
+## Permissions & Modes
+
+Claude Minions uses Claude Code's permission system to control what agents can do.
+
+### `ask` mode (default)
+
+Agents run with a set of pre-approved permissions (file read/write, git, gh, npm, common shell commands). However, Claude Code may still prompt for approval on sensitive operations like `git push` or `gh issue create`. **In daemon mode, there is no interactive terminal to approve these prompts — blocked operations fail silently.** This mode works well for interactive `minions tap` sessions where you can approve prompts directly.
+
+### `yolo` mode
+
+Agents run with `--dangerously-skip-permissions` — all operations are auto-approved with no prompts. This gives agents full autonomous capability: they can commit, push, create issues, and open PRs without intervention.
+
+> **Recommended:** For fully autonomous multi-agent workflows, run Claude Minions on a sandboxed server (e.g., EC2 instance, Docker container) in `yolo` mode. Local `ask` mode is great for supervised `tap` sessions but limits what agents can do autonomously via the daemon.
+
+### Default Permissions
+
+Every agent gets these permissions out of the box (configurable via `minions.json`):
+
+- **File operations:** Read, Write, Edit, Glob, Grep
+- **Shell commands:** git, gh, npm, npx, ls, mkdir, rm, touch, cat, cp, mv, echo, chmod, pwd, curl
+
+Add custom rules per-role via the `permissions.allow` and `permissions.deny` fields in your config. Global deny rules always win — they cannot be overridden by role-level allow rules.
 
 ## Commands
 
@@ -118,7 +203,7 @@ All configuration lives in `minions.json` at your project root.
 | `minions up` | Start the WebSocket server and chat daemon |
 | `minions down` | Stop the server and daemon |
 | `minions tap <role>` | Tap into an agent's session interactively with full conversation history |
-| `minions chat` | Open interactive group chat to message agents via @mentions |
+| `minions chat` | Open interactive group chat to message agents via `@mentions` |
 | `minions status` | Show status of all agent processes |
 | `minions permissions update` | Re-apply permissions from `minions.json` to all role workspaces |
 
@@ -159,7 +244,7 @@ Both PRs are ready for your review. You approve and ship.
 - **Start small** — Begin with one or two agents before scaling up
 - **Use SSH keys** — Configure SSH for seamless git operations across agents
 - **Assign models thoughtfully** — Opus for planning and complex coding, Sonnet for straightforward tasks, Haiku for lightweight work
-- **Use `ask` mode locally** — Reserve `yolo` mode for isolated environments (EC2, containers)
+- **Understand the mode tradeoff** — `ask` mode is safe but limits daemon autonomy (no terminal to approve prompts). `yolo` mode gives full autonomy but should only be used in sandboxed environments
 - **Tap in often** — Use `minions tap` to check on agents and provide direction
 
 ## Contributing

@@ -1,6 +1,8 @@
-import type { Message } from '../../core/messages.js';
+import type { ChatMessage, Message } from '../../core/messages.js';
 import type { WebSocket } from 'ws';
 import { validateMessage } from './schemas.js';
+
+const MAX_HISTORY = 100;
 
 export interface ClientConnection {
   ws: WebSocket;
@@ -9,8 +11,14 @@ export interface ClientConnection {
 
 export class MessageRouter {
   private paused = false;
+  private chatHistory: ChatMessage[] = [];
 
   constructor(private clients: Map<string, ClientConnection>) {}
+
+  getHistory(limit: number = 10): ChatMessage[] {
+    const capped = Math.min(Math.max(limit, 1), MAX_HISTORY);
+    return this.chatHistory.slice(-capped);
+  }
 
   route(rawMessage: unknown, senderId: string) {
     try {
@@ -48,6 +56,14 @@ export class MessageRouter {
           }));
         }
         return;
+      }
+
+      // Store chat messages in history
+      if (message.type === 'chat') {
+        this.chatHistory.push(message);
+        if (this.chatHistory.length > MAX_HISTORY) {
+          this.chatHistory.shift();
+        }
       }
 
       // Group chat: broadcast everything to all clients except sender
