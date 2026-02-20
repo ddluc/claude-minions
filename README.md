@@ -4,6 +4,8 @@
 
 Claude Minions coordinates multiple AI agents — each with a defined role — to collaborate on your codebase through GitHub. Agents communicate via group chat, create issues, implement features on branches, and open PRs for your review.
 
+![Claude Minions Demo — multi-agent coordination via group chat](docs/demo.png)
+
 ## Key Features
 
 - **Multi-agent collaboration** — PM, architect, engineers, and QA agents work together through a shared chat, coordinating via @mentions
