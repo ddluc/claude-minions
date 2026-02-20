@@ -16,6 +16,10 @@ export class WebSocketServer {
     this.wss.on('connection', (ws) => this.handleConnection(ws));
   }
 
+  getChatHistory(limit?: number) {
+    return this.router.getHistory(limit);
+  }
+
   private handleConnection(ws: WebSocket) {
     const clientId = uuidv4();
 
