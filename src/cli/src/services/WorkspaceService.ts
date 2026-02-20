@@ -27,8 +27,9 @@ export class WorkspaceService {
    */
   writeClaudeMd(role: AgentRole, hasSshKey = false): void {
     const roleConfig = this.settings.roles[role] || {};
-    const content = buildClaudeMd(role, roleConfig, this.workspaceRoot, this.settings.repos, hasSshKey);
-    fs.writeFileSync(path.join(this.minionsDir, role, 'CLAUDE.md'), content);
+    const roleDir = path.join(this.minionsDir, role);
+    const content = buildClaudeMd(role, roleConfig, this.workspaceRoot, this.settings.repos, hasSshKey, roleDir);
+    fs.writeFileSync(path.join(roleDir, 'CLAUDE.md'), content);
   }
 
   /**

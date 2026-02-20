@@ -12,9 +12,17 @@ export function loadRoleTemplate(role: AgentRole): string {
   return fs.readFileSync(path.join(TEMPLATES_DIR, `${role}.md`), 'utf-8');
 }
 
-export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false): string {
+export function buildClaudeMd(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false, roleDir?: string): string {
   const base = loadRoleTemplate(role);
   let content = base;
+
+  // Replace vague working directory placeholder with concrete paths
+  if (roleDir) {
+    content = content.replace(
+      '- **Always stay within your minion working directory** (specific path will be set when the agent starts)',
+      `- **Your working directory**: \`${roleDir}\`\n- **Workspace root**: \`${workspaceRoot}\`\n- Do not read or write files outside your working directory`,
+    );
+  }
 
   // Inject SSH authentication info if SSH key is configured
   if (hasSshKey) {
