@@ -70,9 +70,9 @@ describe('MessageRouter', () => {
 
   it('depth limit — message dropped at maxDepth', async () => {
     const onProcessChain = vi.fn()
-      .mockResolvedValueOnce({ response: 'hi @be-engineer' })  // cao depth 0
-      .mockResolvedValueOnce({ response: 'hi @pm' })           // be-engineer depth 1
-      .mockResolvedValue({ response: 'done' });                 // pm depth 2 — should be dropped
+      .mockResolvedValueOnce({ response: 'hi @be-engineer' })
+      .mockResolvedValueOnce({ response: 'hi @pm' })
+      .mockResolvedValue({ response: 'done' });
     const onSend = vi.fn();
     const chainRouter = new MessageRouter({
       enabledRoles: ['cao', 'be-engineer', 'pm'],
@@ -82,7 +82,6 @@ describe('MessageRouter', () => {
     });
     chainRouter.route(makeMsg('@cao start the chain'));
     await flush();
-    // cao (depth 0) → be-engineer (depth 1) → pm (depth 2) dropped
     expect(onProcessChain).toHaveBeenCalledTimes(2);
     const calledRoles = onProcessChain.mock.calls.map((c: any[]) => c[0]);
     expect(calledRoles).toContain('cao');
@@ -92,8 +91,8 @@ describe('MessageRouter', () => {
 
   it('response re-routing — @mentions in response trigger enqueue at depth + 1', async () => {
     const onProcess = vi.fn()
-      .mockResolvedValueOnce({ response: 'hey @be-engineer do this' }) // cao's response
-      .mockResolvedValueOnce({ response: 'done' });                     // be-engineer's response
+      .mockResolvedValueOnce({ response: 'hey @be-engineer do this' })
+      .mockResolvedValueOnce({ response: 'done' });
     const onSend = vi.fn();
     const router = new MessageRouter({
       enabledRoles: ['cao', 'be-engineer'],
@@ -113,7 +112,6 @@ describe('MessageRouter', () => {
     const { router } = makeRouter({ onProcess });
     router.route(makeMsg('@cao what do you think?'));
     await flush();
-    // cao responds with @cao — should NOT re-route to itself
     expect(onProcess).toHaveBeenCalledOnce();
   });
 
@@ -123,13 +121,13 @@ describe('MessageRouter', () => {
       .mockResolvedValueOnce({ response: 'all good' });
     const onSend = vi.fn();
     const router = new MessageRouter({
-      enabledRoles: ['cao', 'be-engineer'],
+      enabledRoles: ['cao'],
       maxDepth: 5,
       onProcess,
       onSend,
     });
-    // Send two separate messages to cao
     router.route(makeMsg('@cao first message'));
+    await flush();
     router.route(makeMsg('@cao second message'));
     await flush();
     expect(onProcess).toHaveBeenCalledTimes(2);
@@ -139,21 +137,47 @@ describe('MessageRouter', () => {
     expect(errorMsg).toBeDefined();
   });
 
-  it('FIFO ordering within a role — messages processed in order', async () => {
-    const processed: string[] = [];
-    const onProcess = vi.fn().mockImplementation((_role: AgentRole, prompt: string) => {
-      processed.push(prompt);
-      return Promise.resolve({ response: 'ok' });
-    });
-    const { router } = makeRouter({ onProcess });
-    router.route(makeMsg('@cao first'));
-    router.route(makeMsg('@cao second'));
-    router.route(makeMsg('@cao third'));
+  it('batching — multiple queued messages sent as one onProcess call', async () => {
+    // Block the queue on the first call so messages 2+3 pile up, then release
+    let unblock!: () => void;
+    const blocked = new Promise<void>(res => { unblock = res; });
+
+    const onProcess = vi.fn()
+      .mockImplementationOnce(async () => {
+        await blocked;
+        return { response: 'batch response' };
+      })
+      .mockResolvedValue({ response: 'ok' });
+
+    const { router } = makeRouter({ onProcess, enabledRoles: ['cao'] });
+
+    // Route first message — this starts processing and blocks
+    router.route(makeMsg('@cao message one'));
+    // Queue two more while first is in flight
+    router.route(makeMsg('@cao message two'));
+    router.route(makeMsg('@cao message three'));
+
+    // Unblock the first call
+    unblock();
     await flush();
-    expect(processed).toHaveLength(3);
-    expect(processed[0]).toContain('first');
-    expect(processed[1]).toContain('second');
-    expect(processed[2]).toContain('third');
+
+    // First call: single message. Second call: batch of 2.
+    expect(onProcess).toHaveBeenCalledTimes(2);
+    const secondCallPrompt = onProcess.mock.calls[1][1] as string;
+    expect(secondCallPrompt).toContain('2 new messages');
+    expect(secondCallPrompt).toContain('message two');
+    expect(secondCallPrompt).toContain('message three');
+  });
+
+  it('batching — single queued message uses simple prompt format', async () => {
+    const onProcess = vi.fn().mockResolvedValue({ response: 'ok' });
+    const { router } = makeRouter({ onProcess });
+    router.route(makeMsg('@cao just one message'));
+    await flush();
+    const prompt = onProcess.mock.calls[0][1] as string;
+    // Single message uses "Message from X: Y" format, not numbered list
+    expect(prompt).toMatch(/^Message from/);
+    expect(prompt).not.toContain('new messages');
   });
 
   it('queue isolation — processing one role does not block another', async () => {
