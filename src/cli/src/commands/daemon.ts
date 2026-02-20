@@ -4,6 +4,7 @@ import { spawnSync } from 'child_process';
 import { DaemonWebSocketClient } from '../agent/DaemonWebSocketClient.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { parseMentions } from '../lib/utils.js';
+import { WorkspaceService } from '../services/WorkspaceService.js';
 import type { Message, ChatMessage } from '../../../core/messages.js';
 import type { AgentRole } from '../../../core/types.js';
 
@@ -39,6 +40,7 @@ function setupDaemonLogging(logFile: string) {
 export async function daemon(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
   const settings = loadSettings(workspaceRoot);
+  const workspace = new WorkspaceService(workspaceRoot, settings);
   const logFile = path.join(workspaceRoot, '.minions', 'daemon.log');
 
   // Setup logging
@@ -115,11 +117,7 @@ export async function daemon(): Promise<void> {
         const model = settings.roles[role]?.model || 'sonnet';
 
         // Load session ID for conversation continuity
-        const sessionIdPath = path.join(roleDir, '.session-id');
-        let sessionId: string | null = null;
-        if (fs.existsSync(sessionIdPath)) {
-          sessionId = fs.readFileSync(sessionIdPath, 'utf-8').trim();
-        }
+        const sessionId = workspace.readSessionId(role);
 
         // Build Claude args with session persistence
         const claudeArgs = ['-p', '--output-format', 'json', '--model', model];
@@ -181,7 +179,7 @@ export async function daemon(): Promise<void> {
 
         // Persist session ID for future conversation continuity
         if (newSessionId) {
-          fs.writeFileSync(sessionIdPath, newSessionId);
+          workspace.writeSessionId(role, newSessionId);
           console.log(`[${role}] Session ID captured: ${newSessionId}`);
         }
 

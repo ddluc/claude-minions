@@ -1,16 +1,14 @@
 import chalk from 'chalk';
 import path from 'path';
-import fs from 'fs-extra';
 import { spawnSync } from 'node:child_process';
 import WebSocket from 'ws';
 import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
 import type { ChatControlMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
-import { parseEnvFile } from '../lib/utils.js';
 import { ProcessManager } from '../services/ProcessManager.js';
+import { WorkspaceService } from '../services/WorkspaceService.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
-import { buildClaudeMd } from '../lib/templates.js';
 
 /**
  * Send a chat_control message over a WebSocket connection.
@@ -74,17 +72,13 @@ export async function tap(role: string): Promise<void> {
     process.exit(1);
   }
 
-  const roleDir = path.join(workspaceRoot, '.minions', role);
-  fs.ensureDirSync(roleDir);
+  const workspace = new WorkspaceService(workspaceRoot, settings);
+  const roleDir = workspace.getRoleDir(agentRole);
+  workspace.ensureRoleDir(agentRole);
 
   // Copy SSH key into the role directory so the minion has local access
-  let sshKeyPath: string | undefined;
-  if (settings.ssh) {
-    const sourceSshKey = path.resolve(workspaceRoot, settings.ssh);
-    const localSshKey = path.join(roleDir, 'ssh_key');
-    fs.copyFileSync(sourceSshKey, localSshKey);
-    fs.chmodSync(localSshKey, 0o600);
-    sshKeyPath = localSshKey;
+  const sshKeyPath = workspace.copySshKey(agentRole);
+  if (sshKeyPath) {
     console.log(chalk.dim(`Copied SSH key into .minions/${role}/`));
   }
 
@@ -125,17 +119,11 @@ export async function tap(role: string): Promise<void> {
     }
   }
 
-  // Parse .env and inject variables into the spawned process environment
-  const envSource = path.join(workspaceRoot, '.env');
-  const envVars = fs.existsSync(envSource)
-    ? parseEnvFile(fs.readFileSync(envSource, 'utf-8'))
-    : {};
+  // Load .env variables for the spawned process environment
+  const envVars = workspace.loadEnvVars();
 
   // Regenerate CLAUDE.md so template changes take effect
-  fs.writeFileSync(
-    path.join(roleDir, 'CLAUDE.md'),
-    buildClaudeMd(agentRole, settings.roles[agentRole] || {}, workspaceRoot, repos, !!sshKeyPath),
-  );
+  workspace.writeClaudeMd(agentRole, !!sshKeyPath);
 
   // Write PID file for status tracking
   const pm = new ProcessManager(workspaceRoot);
@@ -143,10 +131,7 @@ export async function tap(role: string): Promise<void> {
   process.on('exit', () => { try { pm.removeRolePid(role); } catch {} });
 
   // Read session ID if it exists
-  const sessionFile = path.join(roleDir, '.session-id');
-  const sessionId = fs.existsSync(sessionFile)
-    ? fs.readFileSync(sessionFile, 'utf-8').trim()
-    : null;
+  const sessionId = workspace.readSessionId(agentRole);
 
   if (sessionId) {
     console.log(chalk.cyan(`Resuming session: ${sessionId}`));

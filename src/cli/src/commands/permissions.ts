@@ -1,13 +1,13 @@
 import chalk from 'chalk';
-import path from 'path';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
-import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js';
+import { resolvePermissions } from '../lib/permissions.js';
+import { WorkspaceService } from '../services/WorkspaceService.js';
 import type { AgentRole } from '../../../core/types.js';
 
 export async function permissionsUpdate(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
   const settings = loadSettings(workspaceRoot);
-  const minionsDir = path.join(workspaceRoot, '.minions');
+  const workspace = new WorkspaceService(workspaceRoot, settings);
 
   const roles = Object.keys(settings.roles) as AgentRole[];
 
@@ -19,10 +19,9 @@ export async function permissionsUpdate(): Promise<void> {
   console.log(chalk.bold('Updating permissions...\n'));
 
   for (const role of roles) {
-    const resolved = resolvePermissions(settings.permissions, settings.roles[role]?.permissions);
-    const roleDir = path.join(minionsDir, role);
-    writePermissionsFile(roleDir, resolved);
+    workspace.writeRolePermissions(role);
 
+    const resolved = resolvePermissions(settings.permissions, settings.roles[role]?.permissions);
     console.log(chalk.green(`  ${role}:`));
     console.log(chalk.dim(`    allow: ${resolved.allow.join(', ')}`));
     if (resolved.deny.length > 0) {
