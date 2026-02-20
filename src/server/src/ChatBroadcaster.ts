@@ -9,7 +9,7 @@ export interface ClientConnection {
   connectedAt: string;
 }
 
-export class MessageRouter {
+export class ChatBroadcaster {
   private paused = false;
   private chatHistory: ChatMessage[] = [];
 
@@ -20,7 +20,7 @@ export class MessageRouter {
     return this.chatHistory.slice(-capped);
   }
 
-  route(rawMessage: unknown, senderId: string) {
+  handle(rawMessage: unknown, senderId: string) {
     try {
       const message = validateMessage(rawMessage);
 

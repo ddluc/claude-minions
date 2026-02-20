@@ -1,23 +1,23 @@
 import { WebSocketServer as WSServer, WebSocket } from 'ws';
 import type { Server } from 'http';
-import { MessageRouter, type ClientConnection } from './MessageRouter.js';
+import { ChatBroadcaster, type ClientConnection } from './ChatBroadcaster.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class WebSocketServer {
   private wss: WSServer;
   private clients: Map<string, ClientConnection>;
-  private router: MessageRouter;
+  private broadcaster: ChatBroadcaster;
 
   constructor(server: Server) {
     this.wss = new WSServer({ server, path: '/ws' });
     this.clients = new Map();
-    this.router = new MessageRouter(this.clients);
+    this.broadcaster = new ChatBroadcaster(this.clients);
 
     this.wss.on('connection', (ws) => this.handleConnection(ws));
   }
 
   getChatHistory(limit?: number) {
-    return this.router.getHistory(limit);
+    return this.broadcaster.getHistory(limit);
   }
 
   private handleConnection(ws: WebSocket) {
@@ -35,7 +35,7 @@ export class WebSocketServer {
       try {
         const rawData = data.toString();
         console.log(`Received message from ${clientId}: ${rawData.substring(0, 200)}`);
-        this.router.route(JSON.parse(rawData), clientId);
+        this.broadcaster.handle(JSON.parse(rawData), clientId);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.error(`Error handling message from ${clientId}:`, errorMsg);
