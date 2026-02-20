@@ -1,14 +1,14 @@
 import chalk from 'chalk';
 import path from 'path';
-import fs from 'fs-extra';
-import { spawnSync } from 'node:child_process';
 import WebSocket from 'ws';
 import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
 import type { AgentRole } from '../../../core/types.js';
 import type { ChatControlMessage } from '../../../core/messages.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { ProcessManager } from '../services/ProcessManager.js';
+import { WorkspaceService } from '../services/WorkspaceService.js';
+import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import { cloneRepo, configureRepo, ensureLabels, parseGitUrl } from '../lib/git.js';
-import { buildClaudeMd } from '../lib/templates.js';
 
 /**
  * Send a chat_control message over a WebSocket connection.
@@ -72,17 +72,13 @@ export async function tap(role: string): Promise<void> {
     process.exit(1);
   }
 
-  const roleDir = path.join(workspaceRoot, '.minions', role);
-  fs.ensureDirSync(roleDir);
+  const workspace = new WorkspaceService(workspaceRoot, settings);
+  const roleDir = workspace.getRoleDir(agentRole);
+  workspace.ensureRoleDir(agentRole);
 
   // Copy SSH key into the role directory so the minion has local access
-  let sshKeyPath: string | undefined;
-  if (settings.ssh) {
-    const sourceSshKey = path.resolve(workspaceRoot, settings.ssh);
-    const localSshKey = path.join(roleDir, 'ssh_key');
-    fs.copyFileSync(sourceSshKey, localSshKey);
-    fs.chmodSync(localSshKey, 0o600);
-    sshKeyPath = localSshKey;
+  const sshKeyPath = workspace.copySshKey(agentRole);
+  if (sshKeyPath) {
     console.log(chalk.dim(`Copied SSH key into .minions/${role}/`));
   }
 
@@ -123,42 +119,19 @@ export async function tap(role: string): Promise<void> {
     }
   }
 
-  // Parse .env and inject variables into the spawned process environment
-  const envSource = path.join(workspaceRoot, '.env');
-  const envVars: Record<string, string> = {};
-  if (fs.existsSync(envSource)) {
-    const envContent = fs.readFileSync(envSource, 'utf-8');
-    for (const line of envContent.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eqIndex = trimmed.indexOf('=');
-      if (eqIndex === -1) continue;
-      const key = trimmed.slice(0, eqIndex).trim();
-      let value = trimmed.slice(eqIndex + 1).trim();
-      // Strip surrounding quotes
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
-      }
-      envVars[key] = value;
-    }
-  }
+  // Load .env variables for the spawned process environment
+  const envVars = workspace.loadEnvVars();
 
   // Regenerate CLAUDE.md so template changes take effect
-  fs.writeFileSync(
-    path.join(roleDir, 'CLAUDE.md'),
-    buildClaudeMd(agentRole, settings.roles[agentRole] || {}, workspaceRoot, repos, !!sshKeyPath),
-  );
+  workspace.writeClaudeMd(agentRole, !!sshKeyPath);
 
   // Write PID file for status tracking
-  const pidFile = path.join(roleDir, '.pid');
-  fs.writeFileSync(pidFile, String(process.pid));
-  process.on('exit', () => { try { fs.removeSync(pidFile); } catch {} });
+  const pm = new ProcessManager(workspaceRoot);
+  pm.writeRolePid(role, process.pid);
+  process.on('exit', () => { try { pm.removeRolePid(role); } catch {} });
 
   // Read session ID if it exists
-  const sessionFile = path.join(roleDir, '.session-id');
-  const sessionId = fs.existsSync(sessionFile)
-    ? fs.readFileSync(sessionFile, 'utf-8').trim()
-    : null;
+  const sessionId = workspace.readSessionId(agentRole);
 
   if (sessionId) {
     console.log(chalk.cyan(`Resuming session: ${sessionId}`));
@@ -186,33 +159,34 @@ export async function tap(role: string): Promise<void> {
     console.log(chalk.dim('Server not running — skipping pause'));
   }
 
-  // Build claude CLI arguments
-  const claudeArgs: string[] = [];
-
-  if (sessionId) {
-    claudeArgs.push('--resume', sessionId);
-  }
-
-  if (settings.mode === 'yolo') {
-    claudeArgs.push('--dangerously-skip-permissions');
-  }
-
-  const roleConfig = settings.roles[agentRole];
-  if (roleConfig?.model) {
-    claudeArgs.push('--model', roleConfig.model);
-  }
-
   // Launch claude interactively
   console.log(chalk.bold.green(`\nTapping into ${role} agent...`));
   console.log(chalk.dim(`Working directory: ${roleDir}`));
   console.log(chalk.dim(`CLAUDE.md loaded from this directory\n`));
 
-  const result = spawnSync('claude', claudeArgs, {
-    cwd: roleDir,
-    stdio: 'inherit',
-    shell: true,
-    env: { ...process.env, ...envVars },
-  });
+  const runner = new ClaudeRunner();
+  let exitCode: number;
+
+  try {
+    exitCode = runner.spawnInteractive({
+      roleDir,
+      sessionId,
+      model: settings.roles[agentRole]?.model,
+      yolo: settings.mode === 'yolo',
+      envVars,
+    });
+  } catch (err) {
+    // Resume chat before exiting on error
+    const freshWs = await connectWebSocket(serverUrl);
+    if (freshWs) {
+      try { await sendControl(freshWs, 'resume', role); } catch {}
+      freshWs.close();
+    }
+    console.error(chalk.red('Failed to start claude CLI'));
+    console.error(chalk.dim('Make sure claude is installed: npm install -g @anthropic-ai/claude-code'));
+    console.error(chalk.dim(err instanceof Error ? err.message : String(err)));
+    process.exit(1);
+  }
 
   // Resume chat via fresh WS connection
   const freshWs = await connectWebSocket(serverUrl);
@@ -229,12 +203,5 @@ export async function tap(role: string): Promise<void> {
     console.log(chalk.dim('Could not reconnect to server — chat may still be paused'));
   }
 
-  if (result.error) {
-    console.error(chalk.red('Failed to start claude CLI'));
-    console.error(chalk.dim('Make sure claude is installed: npm install -g @anthropic-ai/claude-code'));
-    console.error(chalk.dim(result.error.message));
-    process.exit(1);
-  }
-
-  process.exit(result.status ?? 0);
+  process.exit(exitCode);
 }

@@ -3,29 +3,24 @@ import path from 'path';
 import { spawn } from 'child_process';
 import chalk from 'chalk';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { ProcessManager } from '../services/ProcessManager.js';
 
 export async function up(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
   const settings = loadSettings(workspaceRoot);
   const minionsDir = path.join(workspaceRoot, '.minions');
+  const pm = new ProcessManager(workspaceRoot);
 
   fs.ensureDirSync(minionsDir);
 
   console.log(chalk.bold('🚀 Starting claude-minions workspace...\n'));
 
   // Check if server is already running
-  const serverPidFile = path.join(minionsDir, 'server.pid');
-  if (fs.existsSync(serverPidFile)) {
-    const serverPid = Number(fs.readFileSync(serverPidFile, 'utf-8'));
-    try {
-      process.kill(serverPid, 0); // Check if process exists
-      console.log(chalk.yellow('⚠ Server already running (PID: ' + serverPid + ')'));
-      console.log(chalk.dim('  Run `minions down` first to stop existing processes\n'));
-      return;
-    } catch {
-      // Process doesn't exist, clean up stale PID file
-      fs.removeSync(serverPidFile);
-    }
+  const serverStatus = pm.getStatus('server');
+  if (serverStatus.running) {
+    console.log(chalk.yellow('⚠ Server already running (PID: ' + serverStatus.pid + ')'));
+    console.log(chalk.dim('  Run `minions down` first to stop existing processes\n'));
+    return;
   }
 
   // Start WebSocket server
@@ -52,7 +47,7 @@ export async function up(): Promise<void> {
 
   serverProcess.unref();
 
-  fs.writeFileSync(serverPidFile, String(serverProcess.pid));
+  pm.writePid('server', serverProcess.pid!);
   console.log(chalk.green(`✓ Server started (PID: ${serverProcess.pid})`));
 
   // Wait for server to be ready
@@ -83,8 +78,7 @@ export async function up(): Promise<void> {
 
   daemonProcess.unref();
 
-  const daemonPidFile = path.join(minionsDir, 'daemon.pid');
-  fs.writeFileSync(daemonPidFile, String(daemonProcess.pid));
+  pm.writePid('daemon', daemonProcess.pid!);
   console.log(chalk.green(`✓ Daemon started (PID: ${daemonProcess.pid})`));
 
   console.log(chalk.bold.green('\n✓ All processes started!\n'));

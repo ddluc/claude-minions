@@ -1,45 +1,36 @@
-import fs from 'fs-extra';
-import path from 'path';
 import chalk from 'chalk';
 import { getWorkspaceRoot } from '../lib/config.js';
+import { ProcessManager } from '../services/ProcessManager.js';
 
 export async function down(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
-  const minionsDir = path.join(workspaceRoot, '.minions');
+  const pm = new ProcessManager(workspaceRoot);
 
   console.log(chalk.bold('🛑 Stopping claude-minions workspace...\n'));
 
   let stoppedAny = false;
 
   // Stop daemon
-  const daemonPidFile = path.join(minionsDir, 'daemon.pid');
-  if (fs.existsSync(daemonPidFile)) {
-    const daemonPid = Number(fs.readFileSync(daemonPidFile, 'utf-8'));
-    try {
-      process.kill(daemonPid, 'SIGTERM');
-      console.log(chalk.green(`✓ Stopped daemon (PID: ${daemonPid})`));
-      fs.removeSync(daemonPidFile);
+  const daemonStatus = pm.getStatus('daemon');
+  if (daemonStatus.pid !== null) {
+    if (pm.kill('daemon')) {
+      console.log(chalk.green(`✓ Stopped daemon (PID: ${daemonStatus.pid})`));
       stoppedAny = true;
-    } catch (err) {
-      console.log(chalk.yellow(`⚠ Daemon not found (PID: ${daemonPid})`));
-      fs.removeSync(daemonPidFile);
+    } else {
+      console.log(chalk.yellow(`⚠ Daemon not found (PID: ${daemonStatus.pid})`));
     }
   } else {
     console.log(chalk.dim('Daemon not running'));
   }
 
   // Stop server
-  const serverPidFile = path.join(minionsDir, 'server.pid');
-  if (fs.existsSync(serverPidFile)) {
-    const serverPid = Number(fs.readFileSync(serverPidFile, 'utf-8'));
-    try {
-      process.kill(serverPid, 'SIGTERM');
-      console.log(chalk.green(`✓ Stopped server (PID: ${serverPid})`));
-      fs.removeSync(serverPidFile);
+  const serverStatus = pm.getStatus('server');
+  if (serverStatus.pid !== null) {
+    if (pm.kill('server')) {
+      console.log(chalk.green(`✓ Stopped server (PID: ${serverStatus.pid})`));
       stoppedAny = true;
-    } catch (err) {
-      console.log(chalk.yellow(`⚠ Server not found (PID: ${serverPid})`));
-      fs.removeSync(serverPidFile);
+    } else {
+      console.log(chalk.yellow(`⚠ Server not found (PID: ${serverStatus.pid})`));
     }
   } else {
     console.log(chalk.dim('Server not running'));

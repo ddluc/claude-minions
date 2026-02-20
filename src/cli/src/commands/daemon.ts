@@ -1,28 +1,18 @@
 import path from 'path';
 import fs from 'fs-extra';
-import { spawnSync } from 'child_process';
 import { DaemonWebSocketClient } from '../agent/DaemonWebSocketClient.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { parseMentions } from '../lib/utils.js';
+import { WorkspaceService } from '../services/WorkspaceService.js';
+import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import type { Message, ChatMessage } from '../../../core/messages.js';
 import type { AgentRole } from '../../../core/types.js';
 
 const MAX_ROUTING_DEPTH = 5;
-const ROLE_MENTION_REGEX = /@(pm|cao|fe-engineer|be-engineer|qa)\b/g;
 
 interface QueuedMessage {
   msg: ChatMessage;
   depth: number;
-}
-
-function parseMentions(content: string): Set<string> {
-  const mentions = new Set<string>();
-  let match;
-  while ((match = ROLE_MENTION_REGEX.exec(content)) !== null) {
-    mentions.add(match[1]);
-  }
-  // Reset regex lastIndex for next call
-  ROLE_MENTION_REGEX.lastIndex = 0;
-  return mentions;
 }
 
 // Setup logging to file
@@ -50,6 +40,8 @@ function setupDaemonLogging(logFile: string) {
 export async function daemon(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();
   const settings = loadSettings(workspaceRoot);
+  const workspace = new WorkspaceService(workspaceRoot, settings);
+  const runner = new ClaudeRunner();
   const logFile = path.join(workspaceRoot, '.minions', 'daemon.log');
 
   // Setup logging
@@ -115,87 +107,41 @@ export async function daemon(): Promise<void> {
       }
 
       try {
-        const roleDir = path.join(workspaceRoot, '.minions', role);
-
-        // Build prompt
+        const roleDir = workspace.getRoleDir(role);
         const prompt = `Message from ${msg.from}: ${msg.content}`;
 
         console.log(`[${role}] Processing message (depth=${depth}, ${queue.length} remaining in queue)`);
 
-        // Get model from settings
-        const model = settings.roles[role]?.model || 'sonnet';
-
-        // Load session ID for conversation continuity
-        const sessionIdPath = path.join(roleDir, '.session-id');
-        let sessionId: string | null = null;
-        if (fs.existsSync(sessionIdPath)) {
-          sessionId = fs.readFileSync(sessionIdPath, 'utf-8').trim();
-        }
-
-        // Build Claude args with session persistence
-        const claudeArgs = ['-p', '--output-format', 'json', '--model', model];
-        if (settings.mode === 'yolo') {
-          claudeArgs.push('--dangerously-skip-permissions');
-        }
+        const sessionId = workspace.readSessionId(role);
         if (sessionId) {
-          claudeArgs.push('--resume', sessionId);
           console.log(`[${role}] Resuming session ${sessionId}`);
         }
-        claudeArgs.push(prompt);
 
-        const result = spawnSync('claude', claudeArgs, {
-          cwd: roleDir,
-          encoding: 'utf-8',
-          maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-          env: {
-            ...process.env,
-          },
+        const result = runner.spawnHeadless({
+          roleDir,
+          prompt,
+          sessionId,
+          model: settings.roles[role]?.model,
+          yolo: settings.mode === 'yolo',
         });
 
         if (result.error) {
-          const errorMsg = `Error spawning Claude: ${result.error.message}`;
-          console.log(`[${role}] ${errorMsg}`);
+          console.log(`[${role}] ${result.error}`);
           wsClient.sendMessage({
             type: 'chat',
             from: role,
-            content: `❌ ${errorMsg}`,
+            content: `❌ ${result.error}`,
             timestamp: new Date().toISOString(),
           });
           continue;
         }
 
-        if (result.status !== 0) {
-          const errorMsg = `Claude exited with code ${result.status}\nStderr: ${result.stderr}\nStdout: ${result.stdout}`;
-          console.log(`[${role}] Claude exited with code ${result.status}`);
-          console.log(`[${role}] stderr: ${result.stderr}`);
-          console.log(`[${role}] stdout: ${result.stdout}`);
-          wsClient.sendMessage({
-            type: 'chat',
-            from: role,
-            content: `❌ ${errorMsg}`,
-            timestamp: new Date().toISOString(),
-          });
-          continue;
+        if (result.sessionId) {
+          workspace.writeSessionId(role, result.sessionId);
+          console.log(`[${role}] Session ID captured: ${result.sessionId}`);
         }
 
-        // Parse JSON response with fallback to plain text
-        let response: string;
-        let newSessionId: string | null = null;
-
-        try {
-          const parsed = JSON.parse(result.stdout);
-          response = parsed.result || '';
-          newSessionId = parsed.session_id || null;
-        } catch {
-          response = result.stdout.trim();
-        }
-
-        // Persist session ID for future conversation continuity
-        if (newSessionId) {
-          fs.writeFileSync(sessionIdPath, newSessionId);
-          console.log(`[${role}] Session ID captured: ${newSessionId}`);
-        }
-
+        const response = result.response;
         console.log(`[${role}] Response generated (${response.length} chars)`);
 
         // Send response to group chat
