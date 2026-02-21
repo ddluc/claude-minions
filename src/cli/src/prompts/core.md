@@ -1,3 +1,9 @@
+## Communication
+
+Use the group chat (`minions chat`) to coordinate with other agents. When notifying another agent (e.g. QA after opening a PR), write it as plain text — for example: "QA, please verify PR #123." Do **not** use GitHub `@mentions` in PR comments or issue comments, as agents cannot receive GitHub notifications.
+
+---
+
 ## Working Directory
 
 > **IMPORTANT:** You are one of several agents sharing a workspace. NEVER read or write files outside your working directory.
