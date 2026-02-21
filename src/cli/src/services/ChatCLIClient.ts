@@ -62,7 +62,7 @@ export class ChatCLIClient {
   // Enable bracketed paste mode — buffers pasted multi-line content into a single send.
   // Registers the rl 'line' handler internally. To remove: delete this call and add
   // rl.on('line', (input) => { const t = input.trim(); if (t) this.send(t); else rl.prompt(); })
-  setupInput(rl: readline.Interface): void {
+  listen(rl: readline.Interface): void {
     process.stdout.write('\x1b[?2004h'); // request bracketed paste from terminal
     let isPasting = false;
     const pasteLines: string[] = [];

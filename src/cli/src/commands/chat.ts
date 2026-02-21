@@ -61,7 +61,7 @@ export async function chat(): Promise<void> {
   });
 
   chatService.connect();
-  chatService.setupInput(rl);
+  chatService.listen(rl);
 
   rl.on('close', () => {
     chatService.disconnect();
