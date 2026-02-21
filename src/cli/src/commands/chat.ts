@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import readline from 'readline';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
-import { ChatService } from '../services/ChatService.js';
+import { ChatCLIClient } from '../services/ChatCLIClient.js';
 import { MessageRouter } from '../services/MessageRouter.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
@@ -22,7 +22,7 @@ export async function chat(): Promise<void> {
   console.error = (...args: any[]) => logStream.write(`[${new Date().toISOString()}] ERROR: ${args.join(' ')}\n`);
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const chatService = new ChatService(
+  const chatService = new ChatCLIClient(
     `ws://localhost:${settings.serverPort || DEFAULT_PORT}/ws`,
     () => rl.prompt(),
   );

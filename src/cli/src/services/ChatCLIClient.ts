@@ -9,7 +9,7 @@ import type { Message } from '../../../core/messages.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 marked.use(markedTerminal() as any);
 
-export class ChatService {
+export class ChatCLIClient {
   private ws: WebSocket | null = null;
   private reconnectInterval = 5000;
   private shouldReconnect = true;
