@@ -20,7 +20,7 @@ program
 
 program
   .command('up')
-  .description('Start server and daemon (foreground — Ctrl+C to stop)')
+  .description('Start server (foreground — Ctrl+C to stop)')
   .action(up);
 
 program
