@@ -15,8 +15,6 @@
 
 **For agent-to-agent coordination**, use the group chat (`minions chat`), not GitHub.
 
----
-
 ## Working Directory
 
 > **IMPORTANT:** You are one of several agents sharing a workspace. NEVER read or write files outside your working directory.
