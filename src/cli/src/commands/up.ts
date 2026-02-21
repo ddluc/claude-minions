@@ -2,7 +2,6 @@ import chalk from 'chalk';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { MinionsServer } from '../../../server/src/index.js';
-import { daemon } from './daemon.js';
 import { DEFAULT_PORT } from '../../../core/constants.js';
 
 export async function up(): Promise<void> {
@@ -32,7 +31,7 @@ export async function up(): Promise<void> {
 
   console.log(chalk.green('\nWorkspace ready.\n'));
 
-  // Start server inline — resolves when listening (HTTP + WebSocket on the same port)
+  // Start server inline — HTTP + WebSocket on the same port
   const port = settings.serverPort || DEFAULT_PORT;
   const srv = new MinionsServer();
   await srv.start(port);
@@ -45,6 +44,7 @@ export async function up(): Promise<void> {
   }
   console.log(chalk.dim('\nPress Ctrl+C to stop.\n'));
 
-  // Start daemon — blocks until SIGINT/SIGTERM
-  await daemon();
+  // Server keeps process alive; exit cleanly on interrupt
+  process.on('SIGINT', () => { console.log(chalk.dim('\nShutting down...')); process.exit(0); });
+  process.on('SIGTERM', () => process.exit(0));
 }
