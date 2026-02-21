@@ -56,6 +56,32 @@ export class ChatCLIClient {
     this.shouldReconnect = false;
     this.ws?.close();
     this.ws = null;
+    process.stdout.write('\x1b[?2004l'); // disable bracketed paste on exit
+  }
+
+  // Enable bracketed paste mode — buffers pasted multi-line content into a single send.
+  // Registers the rl 'line' handler internally. To remove: delete this call and add
+  // rl.on('line', (input) => { const t = input.trim(); if (t) this.send(t); else rl.prompt(); })
+  setupInput(rl: readline.Interface): void {
+    process.stdout.write('\x1b[?2004h'); // request bracketed paste from terminal
+    let isPasting = false;
+    const pasteLines: string[] = [];
+
+    process.stdin.on('data', (chunk: Buffer) => {
+      const str = chunk.toString();
+      if (str.includes('\x1b[200~')) isPasting = true;
+      if (str.includes('\x1b[201~')) {
+        isPasting = false;
+        if (pasteLines.length > 0) this.send(pasteLines.splice(0).join('\n'));
+      }
+    });
+
+    rl.on('line', (input) => {
+      const trimmed = input.trim();
+      if (!trimmed) { rl.prompt(); return; }
+      if (isPasting) { pasteLines.push(trimmed); return; }
+      this.send(trimmed);
+    });
   }
 
   on(event: 'message', handler: (msg: Message) => void): void {

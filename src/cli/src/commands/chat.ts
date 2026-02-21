@@ -61,12 +61,7 @@ export async function chat(): Promise<void> {
   });
 
   chatService.connect();
-
-  rl.on('line', (input) => {
-    const trimmed = input.trim();
-    if (trimmed) chatService.send(trimmed);
-    else rl.prompt();
-  });
+  chatService.setupInput(rl);
 
   rl.on('close', () => {
     chatService.disconnect();
