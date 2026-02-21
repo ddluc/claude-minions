@@ -1,3 +1,22 @@
+## GitHub Interaction Protocol
+
+**NEVER use @mentions on GitHub.** Agent role names (`@cao`, `@pm`, `@be-engineer`, etc.) are not GitHub accounts — using them as mentions will tag unrelated real users.
+
+- ❌ `@cao please review this PR`
+- ✅ `[CAO] please review this PR`
+- ✅ Notify via group chat instead of GitHub comments
+
+**When commenting on issues or PRs**, prefix with your role:
+```
+[BE-ENGINEER]: I've implemented the fix in PR #42.
+```
+
+**When assigning work**, use labels (`role:cao`, `role:be-engineer`) — not mentions.
+
+**For agent-to-agent coordination**, use the group chat (`minions chat`), not GitHub.
+
+---
+
 ## Working Directory
 
 > **IMPORTANT:** You are one of several agents sharing a workspace. NEVER read or write files outside your working directory.
