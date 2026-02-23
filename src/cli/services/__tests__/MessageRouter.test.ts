@@ -250,7 +250,7 @@ describe('MessageRouter', () => {
     expect(onProcess).toHaveBeenCalledTimes(2);
   });
 
-  it('@all in agent response expands and re-routes, skipping self', async () => {
+  it('@all in agent response does not expand — only explicit mentions re-route', async () => {
     const onProcess = vi.fn()
       .mockResolvedValueOnce({ response: 'hey @all check this out' })
       .mockResolvedValue({ response: 'done' });
@@ -261,10 +261,7 @@ describe('MessageRouter', () => {
     router.route(makeMsg('@cao start'));
     await flush();
     const roles = onProcess.mock.calls.map((c: any[]) => c[0]);
-    // cao responded with @all — should route to be-engineer and pm, not back to cao
-    expect(roles).toContain('cao');
-    expect(roles).toContain('be-engineer');
-    expect(roles).toContain('pm');
-    expect(roles.filter((r: string) => r === 'cao')).toHaveLength(1);
+    // @all in agent response should NOT expand — prevents broadcast storms
+    expect(roles).toEqual(['cao']);
   });
 });

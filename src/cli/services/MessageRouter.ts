@@ -156,7 +156,8 @@ export class MessageRouter {
         this.onSend(responseMsg);
 
         // Re-route @mentions in the response (agent-to-agent), skip self
-        const responseMentions = this.expandMentions(parseMentions(result.response));
+        // Don't expand @all in responses — only explicit mentions to prevent broadcast storms
+        const responseMentions = parseMentions(result.response);
         for (const mention of responseMentions) {
           const targetRole = mention as AgentRole;
           if (targetRole === role) continue;
