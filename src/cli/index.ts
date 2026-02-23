@@ -16,7 +16,8 @@ program
 program
   .command('init')
   .description('Initialize a new minions workspace')
-  .action(() => new InitCommand().run());
+  .option('--dry-run', 'Run prompts without writing any files')
+  .action((opts) => new InitCommand().run({ dryRun: opts.dryRun }));
 
 program
   .command('up')

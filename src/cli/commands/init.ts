@@ -141,35 +141,54 @@ export class InitCommand {
   /**
    * Run init: load existing config or prompt for new one, then create workspace directories.
    */
-  async run(): Promise<void> {
+  async run(options: { dryRun?: boolean } = {}): Promise<void> {
+    const { dryRun = false } = options;
     const cwd = process.cwd();
     const configPath = path.join(cwd, 'minions.json');
 
+    if (dryRun) {
+      log.dim('[dry-run] No files will be written.\n');
+    }
+
     let settings: Settings;
 
-    if (fs.existsSync(configPath)) {
+    if (!dryRun && fs.existsSync(configPath)) {
       this.messages.foundConfig();
       settings = loadSettings(cwd);
     } else {
       this.messages.setupHeader();
       settings = await this.promptForSettings();
-      fs.writeJSONSync(configPath, settings, { spaces: 2 });
-      this.messages.createdConfig();
+      if (dryRun) {
+        log.dim('[dry-run] Would create minions.json\n');
+      } else {
+        fs.writeJSONSync(configPath, settings, { spaces: 2 });
+        this.messages.createdConfig();
+      }
     }
 
     const workspace = new WorkspaceService(cwd, settings);
     const roles = Object.keys(settings.roles) as AgentRole[];
 
     for (const role of roles) {
-      workspace.ensureRoleDir(role as AgentRole);
+      if (dryRun) {
+        log.dim(`[dry-run] Would create .minions/${role}/`);
+      } else {
+        workspace.ensureRoleDir(role as AgentRole);
+      }
     }
-    this.messages.dirsCreated(roles);
+    if (!dryRun) {
+      this.messages.dirsCreated(roles);
+    }
 
-    if (workspace.ensureEnvTemplate()) {
+    if (dryRun) {
+      log.dim('[dry-run] Would create .env template');
+    } else if (workspace.ensureEnvTemplate()) {
       this.messages.envTemplateCreated();
     }
 
-    if (workspace.ensureGitignore()) {
+    if (dryRun) {
+      log.dim('[dry-run] Would update .gitignore');
+    } else if (workspace.ensureGitignore()) {
       this.messages.gitignoreUpdated();
     }
 
