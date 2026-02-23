@@ -27,53 +27,73 @@ function setupDaemonLogging(logFile: string) {
   };
 }
 
-export async function daemon(): Promise<void> {
-  const workspaceRoot = getWorkspaceRoot();
-  const settings = loadSettings(workspaceRoot);
-  const workspace = new WorkspaceService(workspaceRoot, settings);
-  const runner = new ClaudeRunner();
-  const logFile = path.join(workspaceRoot, '.minions', 'daemon.log');
-
-  setupDaemonLogging(logFile);
-  console.log('Starting multi-role daemon...');
-
-  const serverUrl = `ws://localhost:${settings.serverPort || DEFAULT_PORT}/ws`;
-  const wsClient = new ChatDaemon(serverUrl);
-  wsClient.connect();
-
-  const router = new MessageRouter({
-    enabledRoles: Object.keys(settings.roles) as AgentRole[],
-    maxDepth: 5,
-    onProcess: async (role, prompt) => {
-      const roleDir = workspace.getRoleDir(role);
-      const sessionId = workspace.readSessionId(role);
-      if (sessionId) console.log(`[${role}] Resuming session ${sessionId}`);
-      const result = await runner.spawnHeadless({
-        roleDir,
-        prompt,
-        sessionId,
-        model: settings.roles[role]?.model,
-        yolo: settings.mode === 'yolo',
-      });
-      if (result.sessionId) {
-        workspace.writeSessionId(role, result.sessionId);
-        console.log(`[${role}] Session ID captured: ${result.sessionId}`);
-      }
-      return {
-        response: result.response,
-        sessionId: result.sessionId ?? undefined,
-        error: result.error ?? undefined,
-      };
+export class DaemonCommand {
+  messages = {
+    starting: () => {
+      console.log('Starting multi-role daemon...');
     },
-    onSend: (msg) => wsClient.sendMessage(msg),
-  });
+    resumingSession: (role: string, sessionId: string) => {
+      console.log(`[${role}] Resuming session ${sessionId}`);
+    },
+    sessionCaptured: (role: string, sessionId: string) => {
+      console.log(`[${role}] Session ID captured: ${sessionId}`);
+    },
+    running: () => {
+      console.log('Daemon running, monitoring all roles...');
+    },
+    shuttingDown: () => {
+      console.log('Shutting down...');
+    },
+  };
 
-  wsClient.on('message', (msg: Message) => {
-    if (msg.type === 'chat') router.route(msg);
-  });
+  async run(): Promise<void> {
+    const workspaceRoot = getWorkspaceRoot();
+    const settings = loadSettings(workspaceRoot);
+    const workspace = new WorkspaceService(workspaceRoot, settings);
+    const runner = new ClaudeRunner();
+    const logFile = path.join(workspaceRoot, '.minions', 'daemon.log');
 
-  process.on('SIGTERM', () => { console.log('Shutting down...'); wsClient.disconnect(); process.exit(0); });
-  process.on('SIGINT',  () => { console.log('Shutting down...'); wsClient.disconnect(); process.exit(0); });
+    setupDaemonLogging(logFile);
+    this.messages.starting();
 
-  console.log('Daemon running, monitoring all roles...');
+    const serverUrl = `ws://localhost:${settings.serverPort || DEFAULT_PORT}/ws`;
+    const wsClient = new ChatDaemon(serverUrl);
+    wsClient.connect();
+
+    const router = new MessageRouter({
+      enabledRoles: Object.keys(settings.roles) as AgentRole[],
+      maxDepth: 5,
+      onProcess: async (role, prompt) => {
+        const roleDir = workspace.getRoleDir(role);
+        const sessionId = workspace.readSessionId(role);
+        if (sessionId) this.messages.resumingSession(role, sessionId);
+        const result = await runner.spawnHeadless({
+          roleDir,
+          prompt,
+          sessionId,
+          model: settings.roles[role]?.model,
+          yolo: settings.mode === 'yolo',
+        });
+        if (result.sessionId) {
+          workspace.writeSessionId(role, result.sessionId);
+          this.messages.sessionCaptured(role, result.sessionId);
+        }
+        return {
+          response: result.response,
+          sessionId: result.sessionId ?? undefined,
+          error: result.error ?? undefined,
+        };
+      },
+      onSend: (msg) => wsClient.sendMessage(msg),
+    });
+
+    wsClient.on('message', (msg: Message) => {
+      if (msg.type === 'chat') router.route(msg);
+    });
+
+    process.on('SIGTERM', () => { this.messages.shuttingDown(); wsClient.disconnect(); process.exit(0); });
+    process.on('SIGINT',  () => { this.messages.shuttingDown(); wsClient.disconnect(); process.exit(0); });
+
+    this.messages.running();
+  }
 }
