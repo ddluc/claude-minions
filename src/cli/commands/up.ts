@@ -1,8 +1,9 @@
 import { log } from '../lib/logger.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
+import { ChatDaemon } from '../services/ChatDaemon.js';
+import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import { MinionsServer } from '../../server/MinionsServer.js';
-import { DaemonCommand } from './daemon.js';
 import { DEFAULT_PORT } from '../../core/constants.js';
 import { getEnabledRoles } from '../../core/settings.js';
 
@@ -68,9 +69,16 @@ export class UpCommand {
     const srv = new MinionsServer();
     await srv.start(port);
 
-    const roles = enabledRoles;
-    this.messages.ready(roles, port);
+    this.messages.ready(enabledRoles, port);
 
-    await new DaemonCommand().run();
+    const daemon = new ChatDaemon({
+      serverUrl: `ws://localhost:${port}/ws`,
+      enabledRoles,
+      maxDepth: 5,
+      workspace,
+      runner: new ClaudeRunner(),
+      settings,
+    });
+    daemon.start();
   }
 }
