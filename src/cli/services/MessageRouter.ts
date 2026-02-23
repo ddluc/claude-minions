@@ -1,6 +1,6 @@
 import { parseMentions } from '../lib/utils.js';
-import type { ChatMessage } from '../../../core/messages.js';
-import type { AgentRole } from '../../../core/types.js';
+import type { ChatMessage } from '../../core/messages.js';
+import type { AgentRole } from '../../core/types.js';
 
 export interface ProcessResult {
   response: string;

@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import { VALID_ROLES, DEFAULT_PORT } from '../../../core/constants.js';
-import type { AgentRole } from '../../../core/types.js';
+import { VALID_ROLES, DEFAULT_PORT } from '../../core/constants.js';
+import type { AgentRole } from '../../core/types.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';

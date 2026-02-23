@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
-import { MinionsServer } from '../../../server/src/index.js';
+import { MinionsServer } from '../../server/index.js';
 import { daemon } from './daemon.js';
-import { DEFAULT_PORT } from '../../../core/constants.js';
+import { DEFAULT_PORT } from '../../core/constants.js';
 
 export async function up(): Promise<void> {
   const workspaceRoot = getWorkspaceRoot();

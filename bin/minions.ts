@@ -1,3 +1,3 @@
 #!/usr/bin/env tsx
 
-import '../src/cli/src/index.js';
+import '../src/cli/index.js';

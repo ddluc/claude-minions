@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { VALID_ROLES } from '../../../core/constants.js';
+import { VALID_ROLES } from '../../core/constants.js';
 
 export const RepoSchema = z.object({
   name: z.string(),

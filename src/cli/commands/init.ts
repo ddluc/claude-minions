@@ -2,8 +2,8 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import fs from 'fs-extra';
 import path from 'path';
-import { VALID_ROLES, DEFAULT_PERMISSIONS } from '../../../core/constants.js';
-import type { AgentRole, PermissionConfig, Repo, RoleConfig, Settings } from '../../../core/types.js';
+import { VALID_ROLES, DEFAULT_PERMISSIONS } from '../../core/constants.js';
+import type { AgentRole, PermissionConfig, Repo, RoleConfig, Settings } from '../../core/types.js';
 import { loadSettings } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 

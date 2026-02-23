@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
-import { DEFAULT_PERMISSIONS } from '../../../core/constants.js';
-import type { PermissionConfig } from '../../../core/types.js';
+import { DEFAULT_PERMISSIONS } from '../../core/constants.js';
+import type { PermissionConfig } from '../../core/types.js';
 
 export interface ResolvedPermissions {
   allow: string[];

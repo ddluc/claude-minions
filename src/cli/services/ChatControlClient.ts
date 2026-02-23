@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import type { ChatControlMessage } from '../../../core/messages.js';
+import type { ChatControlMessage } from '../../core/messages.js';
 
 export class ChatControlClient {
   private serverPort: number;

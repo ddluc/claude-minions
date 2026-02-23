@@ -4,7 +4,7 @@ import { init } from './commands/init.js';
 import { chat } from './commands/chat.js';
 import { up } from './commands/up.js';
 import { tap } from './commands/tap.js';
-import { VALID_ROLES } from '../../core/constants.js';
+import { VALID_ROLES } from '../core/constants.js';
 
 const program = new Command();
 

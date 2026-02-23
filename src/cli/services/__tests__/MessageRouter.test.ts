@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MessageRouter } from '../MessageRouter.js';
 import type { ProcessResult } from '../MessageRouter.js';
-import type { ChatMessage } from '../../../../core/messages.js';
-import type { AgentRole } from '../../../../core/types.js';
+import type { ChatMessage } from '../../../core/messages.js';
+import type { AgentRole } from '../../../core/types.js';
 
 function makeMsg(content: string, from = 'user'): ChatMessage {
   return { type: 'chat', from, content, timestamp: new Date().toISOString() };

@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import type { AgentRole, RoleConfig, Repo } from '../../../core/types.js';
+import type { AgentRole, RoleConfig, Repo } from '../../core/types.js';
 import { parseGitUrl } from './git.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

@@ -5,9 +5,9 @@ import { MessageRouter } from '../services/MessageRouter.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
-import type { Message } from '../../../core/messages.js';
-import type { AgentRole } from '../../../core/types.js';
-import { DEFAULT_PORT } from '../../../core/constants.js';
+import type { Message } from '../../core/messages.js';
+import type { AgentRole } from '../../core/types.js';
+import { DEFAULT_PORT } from '../../core/constants.js';
 
 function setupDaemonLogging(logFile: string) {
   const logStream = fs.createWriteStream(logFile, { flags: 'a' });

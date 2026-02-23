@@ -1,4 +1,4 @@
-import type { ChatMessage, Message } from '../../core/messages.js';
+import type { ChatMessage, Message } from '../core/messages.js';
 import type { WebSocket } from 'ws';
 import { validateMessage } from './schemas.js';
 

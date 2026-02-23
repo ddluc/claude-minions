@@ -5,7 +5,7 @@ import { marked } from 'marked';
 import { markedTerminal } from 'marked-terminal';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { colorRole } from '../lib/utils.js';
-import { DEFAULT_PORT } from '../../../core/constants.js';
+import { DEFAULT_PORT } from '../../core/constants.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 marked.use(markedTerminal() as any);

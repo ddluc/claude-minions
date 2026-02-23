@@ -200,12 +200,9 @@ Add custom rules per-role via the `permissions.allow` and `permissions.deny` fie
 | Command | Description |
 |---------|-------------|
 | `minions init` | Initialize a new workspace with `minions.json` and `.minions/` directory |
-| `minions up` | Start the WebSocket server and chat daemon |
-| `minions down` | Stop the server and daemon |
+| `minions up` | Start the WebSocket server and daemon (foreground — Ctrl+C to stop) |
 | `minions tap <role>` | Tap into an agent's session interactively with full conversation history |
 | `minions chat` | Open interactive group chat to message agents via `@mentions` |
-| `minions status` | Show status of all agent processes |
-| `minions permissions update` | Re-apply permissions from `minions.json` to all role workspaces |
 
 ## Workflow Example
 
@@ -227,7 +224,7 @@ The CAO reads the codebase, designs the approach, and creates GitHub issues:
 
 **3. Engineers pick up work automatically**
 
-The daemon routes issues to the right agents. The BE engineer implements JWT auth and opens PR #10. The FE engineer builds the login form and opens PR #11.
+The CAO notifies agents via group chat (`@be-engineer`, `@fe-engineer`). The daemon routes each `@mention` to the right agent's queue. The BE engineer implements JWT auth and opens PR #10. The FE engineer builds the login form and opens PR #11.
 
 **4. Tap in to check progress**
 ```bash
