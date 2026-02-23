@@ -1,12 +1,18 @@
+## Chat Mention Protocol
+
+- **`@role`** (e.g., `@cao`) — Routes your message to that agent. Only use when you need them to take action or respond.
+- **Plain role name** (e.g., `cao`, `be-engineer`) — References an agent without routing. Use when talking about an agent, not to them.
+
+Do NOT @mention an agent unless you need a response from them. Unnecessary mentions create noise and slow down the team.
+
 ## GitHub Interaction Protocol
 
-**NEVER use @mentions on GitHub.** Agent role names (`@cao`, `@pm`, `@be-engineer`, etc.) are not GitHub accounts — using them as mentions will tag unrelated real users.
+**NEVER use @mentions on GitHub.** Agent role names are not GitHub accounts — using them as mentions will tag unrelated real users.
 
 - ❌ `@cao please review this PR`
-- ✅ `[CAO] please review this PR`
-- ✅ Notify via group chat instead of GitHub comments
+- ✅ `cao, please review this PR`
 
-**When commenting on issues or PRs**, prefix with your role:
+**When commenting on issues or PRs**, prefix with your role name:
 ```
 [BE-ENGINEER]: I've implemented the fix in PR #42.
 ```
