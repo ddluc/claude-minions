@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { log } from '../lib/logger.js';
 import { VALID_ROLES, DEFAULT_PORT } from '../../core/constants.js';
 import type { AgentRole } from '../../core/types.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
@@ -6,94 +7,124 @@ import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import { ChatController } from '../services/ChatController.js';
 
-export async function tap(role: string): Promise<void> {
-  // Validate role
-  if (!VALID_ROLES.includes(role as AgentRole)) {
-    console.error(chalk.red(`Invalid role: ${role}`));
-    console.error(chalk.dim(`Valid roles: ${VALID_ROLES.join(', ')}`));
-    process.exit(1);
+export class TapCommand {
+  messages = {
+    invalidRole: (role: string) => {
+      log.error(`Invalid role: ${role}`);
+      log.dim(`Valid roles: ${VALID_ROLES.join(', ')}`);
+    },
+    roleNotEnabled: (role: string, enabledRoles: string[]) => {
+      log.error(`Role "${role}" is not enabled in minions.json`);
+      log.dim('Enabled roles: ' + enabledRoles.join(', '));
+    },
+    serverNotRunning: () => {
+      log.error('Server not running. Run `minions up` first.');
+    },
+    resumingSession: (sessionId: string) => {
+      console.log(chalk.cyan(`Resuming session: ${sessionId}`));
+    },
+    freshSession: () => {
+      console.log(chalk.cyan('Starting fresh session'));
+    },
+    connectingToServer: (port: number) => {
+      log.dim(`Connecting to server at ws://localhost:${port}/ws...`);
+    },
+    chatPaused: () => {
+      log.warn('Pausing chat...');
+    },
+    skippingPause: () => {
+      log.dim('Server not running — skipping pause');
+    },
+    tappingIn: (role: string, roleDir: string) => {
+      log.success(`\nTapping into ${role} agent...`);
+      log.dim(`Working directory: ${roleDir}`);
+      log.dim(`CLAUDE.md loaded from this directory\n`);
+    },
+    claudeStartFailed: (err: unknown) => {
+      log.error('Failed to start claude CLI');
+      log.dim('Make sure claude is installed: curl -fsSL https://claude.ai/install.sh | bash');
+      log.dim(err instanceof Error ? err.message : String(err));
+    },
+    chatResumed: () => {
+      log.warn('Resuming chat...');
+    },
+    resumeFailed: () => {
+      log.dim('Could not reconnect to server — chat may still be paused');
+    },
+  };
+
+  async run(role: string): Promise<void> {
+    if (!VALID_ROLES.includes(role as AgentRole)) {
+      this.messages.invalidRole(role);
+      process.exit(1);
+    }
+    const agentRole = role as AgentRole;
+
+    const workspaceRoot = getWorkspaceRoot();
+    const settings = loadSettings(workspaceRoot);
+
+    if (!settings.roles[agentRole]) {
+      this.messages.roleNotEnabled(role, Object.keys(settings.roles));
+      process.exit(1);
+    }
+
+    const serverPort = settings.serverPort || DEFAULT_PORT;
+    try {
+      const res = await fetch(`http://localhost:${serverPort}/api/health`);
+      if (!res.ok) throw new Error('unhealthy');
+    } catch {
+      this.messages.serverNotRunning();
+      process.exit(1);
+    }
+
+    const workspace = new WorkspaceService(workspaceRoot, settings);
+    const roleDir = workspace.getRoleDir(agentRole);
+    const envVars = workspace.loadEnvVars();
+    const sessionId = workspace.readSessionId(agentRole);
+
+    if (sessionId) {
+      this.messages.resumingSession(sessionId);
+    } else {
+      this.messages.freshSession();
+    }
+
+    const chatController = new ChatController(serverPort);
+
+    this.messages.connectingToServer(serverPort);
+    const paused = await chatController.pause(role);
+    if (paused) {
+      this.messages.chatPaused();
+    } else {
+      this.messages.skippingPause();
+    }
+
+    this.messages.tappingIn(role, roleDir);
+
+    const runner = new ClaudeRunner();
+    let exitCode: number;
+
+    try {
+      exitCode = runner.spawnInteractive({
+        roleDir,
+        sessionId,
+        model: settings.roles[agentRole]?.model,
+        yolo: settings.mode === 'yolo',
+        envVars,
+      });
+    } catch (err) {
+      await chatController.resume(role);
+      this.messages.claudeStartFailed(err);
+      process.exit(1);
+    }
+
+    const resumed = await chatController.resume(role);
+    if (resumed) {
+      this.messages.chatResumed();
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    } else {
+      this.messages.resumeFailed();
+    }
+
+    process.exit(exitCode);
   }
-  const agentRole = role as AgentRole;
-
-  // Find workspace and load settings
-  const workspaceRoot = getWorkspaceRoot();
-  const settings = loadSettings(workspaceRoot);
-
-  // Verify role is enabled
-  if (!settings.roles[agentRole]) {
-    console.error(chalk.red(`Role "${role}" is not enabled in minions.json`));
-    console.error(chalk.dim('Enabled roles: ' + Object.keys(settings.roles).join(', ')));
-    process.exit(1);
-  }
-
-  // Guard: server must be running before tapping in
-  const serverPort = settings.serverPort || DEFAULT_PORT;
-  try {
-    const res = await fetch(`http://localhost:${serverPort}/api/health`);
-    if (!res.ok) throw new Error('unhealthy');
-  } catch {
-    console.error(chalk.red('Server not running. Run `minions up` first.'));
-    process.exit(1);
-  }
-
-  const workspace = new WorkspaceService(workspaceRoot, settings);
-  const roleDir = workspace.getRoleDir(agentRole);
-
-  // Load .env variables for the spawned process environment
-  const envVars = workspace.loadEnvVars();
-
-  // Read session ID if it exists
-  const sessionId = workspace.readSessionId(agentRole);
-
-  if (sessionId) {
-    console.log(chalk.cyan(`Resuming session: ${sessionId}`));
-  } else {
-    console.log(chalk.cyan('Starting fresh session'));
-  }
-
-  // Pause chat via server
-  const chatController = new ChatController(serverPort);
-
-  console.log(chalk.dim(`Connecting to server at ws://localhost:${serverPort}/ws...`));
-  const paused = await chatController.pause(role);
-  if (paused) {
-    console.log(chalk.yellow(`Pausing chat...`));
-  } else {
-    console.log(chalk.dim('Server not running — skipping pause'));
-  }
-
-  // Launch claude interactively
-  console.log(chalk.bold.green(`\nTapping into ${role} agent...`));
-  console.log(chalk.dim(`Working directory: ${roleDir}`));
-  console.log(chalk.dim(`CLAUDE.md loaded from this directory\n`));
-
-  const runner = new ClaudeRunner();
-  let exitCode: number;
-
-  try {
-    exitCode = runner.spawnInteractive({
-      roleDir,
-      sessionId,
-      model: settings.roles[agentRole]?.model,
-      yolo: settings.mode === 'yolo',
-      envVars,
-    });
-  } catch (err) {
-    await chatController.resume(role);
-    console.error(chalk.red('Failed to start claude CLI'));
-    console.error(chalk.dim('Make sure claude is installed: curl -fsSL https://claude.ai/install.sh | bash'));
-    console.error(chalk.dim(err instanceof Error ? err.message : String(err)));
-    process.exit(1);
-  }
-
-  // Resume chat
-  const resumed = await chatController.resume(role);
-  if (resumed) {
-    console.log(chalk.yellow(`Resuming chat...`));
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  } else {
-    console.log(chalk.dim('Could not reconnect to server — chat may still be paused'));
-  }
-
-  process.exit(exitCode);
 }
