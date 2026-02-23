@@ -13,6 +13,10 @@ export class ChatBroadcaster {
   private tapped = new Set<string>();
   private chatHistory: ChatMessage[] = [];
 
+  private get paused(): boolean {
+    return this.tapped.size > 0;
+  }
+
   constructor(private clients: Map<string, ClientConnection>) {}
 
   getHistory(limit: number = 10): ChatMessage[] {
@@ -55,7 +59,7 @@ export class ChatBroadcaster {
       }
 
       // When paused, reject chat messages with a system response
-      if (this.tapped.size > 0 && message.type === 'chat') {
+      if (this.paused && message.type === 'chat') {
         const senderConn = this.clients.get(senderId);
         if (senderConn) {
           senderConn.ws.send(JSON.stringify({
