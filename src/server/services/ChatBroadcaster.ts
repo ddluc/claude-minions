@@ -39,7 +39,7 @@ export class ChatBroadcaster {
           });
         } else if (message.action === 'resume') {
           this.tapped.delete(message.role);
-          if (this.tapped.size === 0) {
+          if (!this.paused) {
             console.log('Chat resumed — all tap sessions ended');
             this.broadcastAll({
               type: 'system',
