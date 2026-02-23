@@ -4,6 +4,7 @@ import { WorkspaceService } from '../services/WorkspaceService.js';
 import { MinionsServer } from '../../server/MinionsServer.js';
 import { DaemonCommand } from './daemon.js';
 import { DEFAULT_PORT } from '../../core/constants.js';
+import { getEnabledRoles } from '../../core/settings.js';
 
 export class UpCommand {
   messages = {
@@ -45,8 +46,10 @@ export class UpCommand {
     const workspace = new WorkspaceService(workspaceRoot, settings);
     const hasSshKey = !!settings.ssh;
 
+    const enabledRoles = getEnabledRoles(settings);
+
     workspace.setupAllRoles(hasSshKey);
-    for (const role of Object.keys(settings.roles)) {
+    for (const role of enabledRoles) {
       this.messages.roleConfigured(role);
     }
 
@@ -65,7 +68,7 @@ export class UpCommand {
     const srv = new MinionsServer();
     await srv.start(port);
 
-    const roles = Object.keys(settings.roles);
+    const roles = enabledRoles;
     this.messages.ready(roles, port);
 
     await new DaemonCommand().run();

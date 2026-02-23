@@ -3,6 +3,7 @@ import { log } from '../lib/logger.js';
 import { VALID_ROLES, DEFAULT_PORT } from '../../core/constants.js';
 import type { AgentRole } from '../../core/types.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { getEnabledRoles } from '../../core/settings.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import { ChatController } from '../services/ChatController.js';
@@ -62,9 +63,10 @@ export class TapCommand {
 
     const workspaceRoot = getWorkspaceRoot();
     const settings = loadSettings(workspaceRoot);
+    const enabledRoles = getEnabledRoles(settings);
 
-    if (!settings.roles[agentRole]) {
-      this.messages.roleNotEnabled(role, Object.keys(settings.roles));
+    if (!enabledRoles.includes(agentRole)) {
+      this.messages.roleNotEnabled(role, enabledRoles);
       process.exit(1);
     }
 

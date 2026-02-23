@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { AgentRole, Settings } from '../../core/types.js';
+import { getEnabledRoles } from '../../core/settings.js';
 import { buildAgentPrompt } from '../lib/prompts.js';
 import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js';
 import { parseEnvFile } from '../lib/utils.js';
@@ -55,7 +56,7 @@ export class WorkspaceService {
    * Setup all enabled roles. If hasSshKey, also copies the SSH key into each role directory.
    */
   setupAllRoles(hasSshKey = false): void {
-    const roles = Object.keys(this.settings.roles) as AgentRole[];
+    const roles = getEnabledRoles(this.settings);
     for (const role of roles) {
       this.setupRole(role, hasSshKey);
       if (hasSshKey) {
@@ -68,7 +69,7 @@ export class WorkspaceService {
    * Clone and configure repos for all roles. Returns a result per role/repo pair.
    */
   cloneAllRepos(): { role: AgentRole; repoName: string; cloned: boolean }[] {
-    const roles = Object.keys(this.settings.roles) as AgentRole[];
+    const roles = getEnabledRoles(this.settings);
     const results: { role: AgentRole; repoName: string; cloned: boolean }[] = [];
 
     for (const role of roles) {
