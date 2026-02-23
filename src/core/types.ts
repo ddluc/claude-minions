@@ -18,6 +18,7 @@ export interface RoleConfig {
   systemPromptFile?: string;
   model?: ClaudeModel;
   permissions?: PermissionConfig;
+  personality?: string[];
 }
 
 export interface Settings {
