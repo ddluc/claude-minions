@@ -8,6 +8,7 @@ export const ROLE_COLORS: Record<string, (text: string) => string> = {
   'fe-engineer': chalk.yellow,
   'be-engineer': chalk.green,
   'qa': chalk.blue,
+  'system': chalk.dim,
 };
 
 export function parseMentions(content: string): Set<string> {
