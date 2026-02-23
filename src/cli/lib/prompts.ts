@@ -11,16 +11,26 @@ const PROMPTS_DIR = path.join(__dirname, '..', 'prompts');
 // Delimiters separating sections in core.md: working directory, ssh, repository context
 const CORE_SECTION_DELIMITER = '\n---\n';
 
+/**
+ * Load the role-specific prompt markdown file (e.g. cao.md, pm.md).
+ */
 export function loadAgentPrompt(role: AgentRole): string {
   return fs.readFileSync(path.join(PROMPTS_DIR, `${role}.md`), 'utf-8');
 }
 
+/**
+ * Load core.md and split it into three sections: working directory, SSH, and repository context.
+ */
 function loadCoreSections(): [string, string, string] {
   const core = fs.readFileSync(path.join(PROMPTS_DIR, 'core.md'), 'utf-8');
   const [workingDir = '', ssh = '', repo = ''] = core.split(CORE_SECTION_DELIMITER);
   return [workingDir.trim(), ssh.trim(), repo.trim()];
 }
 
+/**
+ * Assemble the full CLAUDE.md prompt for a role by combining the role template,
+ * personality traits, working directory, SSH config, repos, and project-specific instructions.
+ */
 export function buildAgentPrompt(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false, roleDir?: string): string {
   const [workingDirSection, sshSection, repoSection] = loadCoreSections();
   let content = loadAgentPrompt(role);

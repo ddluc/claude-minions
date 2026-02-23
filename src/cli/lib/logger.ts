@@ -9,6 +9,9 @@ export interface Logger {
   warn(msg: string): void;
 }
 
+/**
+ * Create a logger instance with the given prefix prepended to all output.
+ */
 function create(prefix: string): Logger {
   return {
     indent(n: number): Logger {

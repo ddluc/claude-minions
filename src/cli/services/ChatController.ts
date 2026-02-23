@@ -1,6 +1,9 @@
 import WebSocket from 'ws';
 import type { ChatControlMessage } from '../../core/messages.js';
 
+/**
+ * Sends pause/resume control messages to the server to coordinate tap sessions with group chat.
+ */
 export class ChatController {
   private serverPort: number;
 
@@ -8,6 +11,9 @@ export class ChatController {
     this.serverPort = serverPort;
   }
 
+  /**
+   * Pause chat routing for a role. Returns true if the server acknowledged.
+   */
   async pause(role: string): Promise<boolean> {
     const ws = await this.connect();
     if (!ws) return false;
@@ -21,6 +27,9 @@ export class ChatController {
     }
   }
 
+  /**
+   * Resume chat routing for a role. Returns true if the server acknowledged.
+   */
   async resume(role: string): Promise<boolean> {
     const ws = await this.connect();
     if (!ws) return false;
@@ -34,6 +43,9 @@ export class ChatController {
     }
   }
 
+  /**
+   * Open a short-lived WebSocket connection to the server with a timeout.
+   */
   private connect(timeout = 3000): Promise<WebSocket | null> {
     return new Promise((resolve) => {
       const url = `ws://localhost:${this.serverPort}/ws`;
@@ -55,6 +67,9 @@ export class ChatController {
     });
   }
 
+  /**
+   * Send a chat control message (pause or resume) over an open WebSocket.
+   */
   private sendControl(ws: WebSocket, action: 'pause' | 'resume', role: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const message: ChatControlMessage = {

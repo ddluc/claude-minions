@@ -9,6 +9,10 @@ export interface ClientConnection {
   connectedAt: string;
 }
 
+/**
+ * Central message handler: validates messages, manages pause/resume state for tap sessions,
+ * stores chat history, and broadcasts to connected clients.
+ */
 export class ChatBroadcaster {
   private tapped = new Set<string>();
   private chatHistory: ChatMessage[] = [];
@@ -19,11 +23,18 @@ export class ChatBroadcaster {
 
   constructor(private clients: Map<string, ClientConnection>) {}
 
+  /**
+   * Return the most recent chat messages, capped to the requested limit.
+   */
   getHistory(limit: number = 10): ChatMessage[] {
     const capped = Math.min(Math.max(limit, 1), MAX_HISTORY);
     return this.chatHistory.slice(-capped);
   }
 
+  /**
+   * Process an incoming message: handle control messages, enforce pause state,
+   * store chat history, and broadcast to other clients.
+   */
   handle(rawMessage: unknown, senderId: string) {
     try {
       const message = validateMessage(rawMessage);
@@ -94,6 +105,9 @@ export class ChatBroadcaster {
     }
   }
 
+  /**
+   * Send a message to all connected clients except the sender.
+   */
   private broadcast(message: Message, excludeId: string) {
     for (const [id, conn] of this.clients.entries()) {
       if (id !== excludeId && conn.ws.readyState === 1) {
@@ -102,6 +116,9 @@ export class ChatBroadcaster {
     }
   }
 
+  /**
+   * Send a message to all connected clients, including the sender.
+   */
   private broadcastAll(message: Message) {
     for (const [, conn] of this.clients.entries()) {
       if (conn.ws.readyState === 1) {

@@ -3,6 +3,9 @@ import type { Server } from 'http';
 import { ChatBroadcaster, type ClientConnection } from './ChatBroadcaster.js';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Manages WebSocket client connections and delegates message handling to ChatBroadcaster.
+ */
 export class WebSocketServer {
   private wss: WSServer;
   private clients: Map<string, ClientConnection>;
@@ -16,10 +19,16 @@ export class WebSocketServer {
     this.wss.on('connection', (ws) => this.handleConnection(ws));
   }
 
+  /**
+   * Return recent chat messages from the broadcaster's history.
+   */
   getChatHistory(limit?: number) {
     return this.broadcaster.getHistory(limit);
   }
 
+  /**
+   * Register a new client, wire up message/close/error handlers, and send a welcome message.
+   */
   private handleConnection(ws: WebSocket) {
     const clientId = uuidv4();
 

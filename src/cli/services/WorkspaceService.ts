@@ -7,6 +7,10 @@ import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js'
 import { parseEnvFile } from '../lib/utils.js';
 import { cloneRepo, configureRepo } from '../lib/git.js';
 
+/**
+ * Manages the .minions/ workspace: role directories, CLAUDE.md generation, permissions,
+ * repo cloning, SSH keys, env vars, and session persistence.
+ */
 export class WorkspaceService {
   private minionsDir: string;
 

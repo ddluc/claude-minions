@@ -7,6 +7,9 @@ import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import { ChatController } from '../services/ChatController.js';
 
+/**
+ * Taps into a single agent's interactive Claude session, pausing group chat while active.
+ */
 export class TapCommand {
   messages = {
     invalidRole: (role: string) => {
@@ -53,6 +56,9 @@ export class TapCommand {
     },
   };
 
+  /**
+   * Validate role, pause chat, spawn interactive Claude session, then resume chat on exit.
+   */
   async run(role: string): Promise<void> {
     if (!VALID_ROLES.includes(role as AgentRole)) {
       this.messages.invalidRole(role);

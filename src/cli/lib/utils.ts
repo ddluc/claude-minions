@@ -11,6 +11,9 @@ export const ROLE_COLORS: Record<string, (text: string) => string> = {
   'system': chalk.dim,
 };
 
+/**
+ * Extract @mentions from a message string, returning the set of mentioned role names.
+ */
 export function parseMentions(content: string): Set<string> {
   const mentions = new Set<string>();
   let match;
@@ -22,11 +25,17 @@ export function parseMentions(content: string): Set<string> {
   return mentions;
 }
 
+/**
+ * Apply the role's assigned chalk color to its name for terminal display.
+ */
 export function colorRole(role: string): string {
   const colorFn = ROLE_COLORS[role] || chalk.white;
   return colorFn(role);
 }
 
+/**
+ * Parse a .env file into key-value pairs, stripping comments and surrounding quotes.
+ */
 export function parseEnvFile(content: string): Record<string, string> {
   const vars: Record<string, string> = {};
   for (const line of content.split('\n')) {
