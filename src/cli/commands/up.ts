@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
-import { MinionsServer } from '../../server/index.js';
+import { MinionsServer } from '../../server/MinionsServer.js';
 import { daemon } from './daemon.js';
 import { DEFAULT_PORT } from '../../core/constants.js';
 

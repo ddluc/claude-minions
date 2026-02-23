@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ChatControlClient } from '../ChatControlClient.js';
+import { ChatController } from '../ChatController.js';
 
 // Mock the ws module
 vi.mock('ws', () => {
@@ -36,12 +36,12 @@ function makeMockWs(opts: {
   return ws;
 }
 
-describe('ChatControlClient', () => {
-  let client: ChatControlClient;
+describe('ChatController', () => {
+  let controller: ChatController;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    client = new ChatControlClient(3000);
+    controller = new ChatController(3000);
   });
 
   describe('pause()', () => {
@@ -49,7 +49,7 @@ describe('ChatControlClient', () => {
       const mockWs = makeMockWs({ openImmediately: true });
       MockWebSocket.mockImplementation(() => mockWs as any);
 
-      const result = await client.pause('be-engineer');
+      const result = await controller.pause('be-engineer');
 
       expect(result).toBe(true);
       expect(mockWs.send).toHaveBeenCalledOnce();
@@ -64,7 +64,7 @@ describe('ChatControlClient', () => {
       const mockWs = makeMockWs({ errorImmediately: true });
       MockWebSocket.mockImplementation(() => mockWs as any);
 
-      const result = await client.pause('be-engineer');
+      const result = await controller.pause('be-engineer');
 
       expect(result).toBe(false);
       expect(mockWs.send).not.toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe('ChatControlClient', () => {
       const mockWs = makeMockWs({ openImmediately: true, sendError: new Error('send failed') });
       MockWebSocket.mockImplementation(() => mockWs as any);
 
-      const result = await client.pause('be-engineer');
+      const result = await controller.pause('be-engineer');
 
       expect(result).toBe(false);
       expect(mockWs.close).toHaveBeenCalledOnce();
@@ -83,9 +83,9 @@ describe('ChatControlClient', () => {
     it('uses correct server port in WebSocket URL', async () => {
       const mockWs = makeMockWs({ openImmediately: true });
       MockWebSocket.mockImplementation(() => mockWs as any);
-      const customClient = new ChatControlClient(4567);
+      const customController = new ChatController(4567);
 
-      await customClient.pause('be-engineer');
+      await customController.pause('be-engineer');
 
       expect(MockWebSocket).toHaveBeenCalledWith('ws://localhost:4567/ws');
     });
@@ -96,7 +96,7 @@ describe('ChatControlClient', () => {
       const mockWs = makeMockWs({ openImmediately: true });
       MockWebSocket.mockImplementation(() => mockWs as any);
 
-      const result = await client.resume('be-engineer');
+      const result = await controller.resume('be-engineer');
 
       expect(result).toBe(true);
       expect(mockWs.send).toHaveBeenCalledOnce();
@@ -111,7 +111,7 @@ describe('ChatControlClient', () => {
       const mockWs = makeMockWs({ errorImmediately: true });
       MockWebSocket.mockImplementation(() => mockWs as any);
 
-      const result = await client.resume('be-engineer');
+      const result = await controller.resume('be-engineer');
 
       expect(result).toBe(false);
       expect(mockWs.send).not.toHaveBeenCalled();
@@ -121,7 +121,7 @@ describe('ChatControlClient', () => {
       const mockWs = makeMockWs({ openImmediately: true, sendError: new Error('send failed') });
       MockWebSocket.mockImplementation(() => mockWs as any);
 
-      const result = await client.resume('be-engineer');
+      const result = await controller.resume('be-engineer');
 
       expect(result).toBe(false);
     });
@@ -139,7 +139,7 @@ describe('ChatControlClient', () => {
       };
       MockWebSocket.mockImplementation(() => ws as any);
 
-      const pausePromise = client.pause('be-engineer');
+      const pausePromise = controller.pause('be-engineer');
       vi.advanceTimersByTime(3001);
       const result = await pausePromise;
 

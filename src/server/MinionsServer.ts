@@ -1,6 +1,6 @@
 import express from 'express';
 import { createServer } from 'http';
-import { WebSocketServer } from './WebSocketServer.js';
+import { WebSocketServer } from './services/WebSocketServer.js';
 
 export class MinionsServer {
   private app: express.Application;

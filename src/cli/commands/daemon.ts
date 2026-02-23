@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs-extra';
-import { DaemonWebSocketClient } from '../services/DaemonWebSocketClient.js';
+import { ChatDaemon } from '../services/ChatDaemon.js';
 import { MessageRouter } from '../services/MessageRouter.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
@@ -38,7 +38,7 @@ export async function daemon(): Promise<void> {
   console.log('Starting multi-role daemon...');
 
   const serverUrl = `ws://localhost:${settings.serverPort || DEFAULT_PORT}/ws`;
-  const wsClient = new DaemonWebSocketClient(serverUrl);
+  const wsClient = new ChatDaemon(serverUrl);
   wsClient.connect();
 
   const router = new MessageRouter({

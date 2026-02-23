@@ -1,6 +1,6 @@
-import type { ChatMessage, Message } from '../core/messages.js';
+import type { ChatMessage, Message } from '../../core/messages.js';
 import type { WebSocket } from 'ws';
-import { validateMessage } from './schemas.js';
+import { validateMessage } from '../util/schemas.js';
 
 const MAX_HISTORY = 100;
 

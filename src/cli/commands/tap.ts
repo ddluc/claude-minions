@@ -4,7 +4,7 @@ import type { AgentRole } from '../../core/types.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
-import { ChatControlClient } from '../services/ChatControlClient.js';
+import { ChatController } from '../services/ChatController.js';
 
 export async function tap(role: string): Promise<void> {
   // Validate role
@@ -52,10 +52,10 @@ export async function tap(role: string): Promise<void> {
   }
 
   // Pause chat via server
-  const chatControl = new ChatControlClient(serverPort);
+  const chatController = new ChatController(serverPort);
 
   console.log(chalk.dim(`Connecting to server at ws://localhost:${serverPort}/ws...`));
-  const paused = await chatControl.pause(role);
+  const paused = await chatController.pause(role);
   if (paused) {
     console.log(chalk.yellow(`Pausing chat...`));
   } else {
@@ -79,7 +79,7 @@ export async function tap(role: string): Promise<void> {
       envVars,
     });
   } catch (err) {
-    await chatControl.resume(role);
+    await chatController.resume(role);
     console.error(chalk.red('Failed to start claude CLI'));
     console.error(chalk.dim('Make sure claude is installed: curl -fsSL https://claude.ai/install.sh | bash'));
     console.error(chalk.dim(err instanceof Error ? err.message : String(err)));
@@ -87,7 +87,7 @@ export async function tap(role: string): Promise<void> {
   }
 
   // Resume chat
-  const resumed = await chatControl.resume(role);
+  const resumed = await chatController.resume(role);
   if (resumed) {
     console.log(chalk.yellow(`Resuming chat...`));
     await new Promise((resolve) => setTimeout(resolve, 200));

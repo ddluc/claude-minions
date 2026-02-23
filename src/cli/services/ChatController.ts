@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import type { ChatControlMessage } from '../../core/messages.js';
 
-export class ChatControlClient {
+export class ChatController {
   private serverPort: number;
 
   constructor(serverPort: number) {

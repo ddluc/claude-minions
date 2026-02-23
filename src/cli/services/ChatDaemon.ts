@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import type { Message } from '../../core/messages.js';
 
-export class DaemonWebSocketClient {
+export class ChatDaemon {
   private ws: WebSocket | null = null;
   private serverUrl: string;
   private reconnectInterval: number = 5000;
