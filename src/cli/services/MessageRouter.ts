@@ -77,14 +77,14 @@ export class MessageRouter {
   }
 
   private sendStatus(): void {
-    const lines = ['Agent Status:'];
+    const lines = ['--'];
     for (const role of this.enabledRoles) {
       const processing = this.isProcessing(role);
       const queued = this.getQueueSize(role);
       const status = processing
         ? `processing${queued > 0 ? ` (${queued} queued)` : ''}`
         : 'idle';
-      lines.push(`  ${role.padEnd(14)} ${status}`);
+      lines.push(`${role.padEnd(14)} ${status}`);
     }
     this.onSend({
       type: 'chat',
