@@ -143,6 +143,34 @@ Each role accepts:
 - **`systemPromptFile`** — Path to a custom system prompt file (optional)
 - **`permissions`** — Role-specific permission overrides with `allow` and `deny` arrays (optional)
 
+### Project-Specific Prompts
+
+You can customize how agents behave in your project by creating prompt files and referencing them via `systemPromptFile`:
+
+```json
+"roles": {
+  "cao": {
+    "model": "opus",
+    "systemPromptFile": "./prompts/cao.md"
+  },
+  "be-engineer": {
+    "model": "sonnet",
+    "systemPromptFile": "./prompts/be-engineer.md"
+  }
+}
+```
+
+The content of each file is appended to the agent's built-in instructions when `minions up` runs. Use this to provide:
+
+- **Project architecture** — describe your codebase structure so agents have context
+- **Coding standards** — conventions, patterns, and guardrails specific to your project
+- **Workflows** — PR targets, branch naming, verification steps
+- **Role-specific behaviors** — e.g., teach the PM to generate status reports from GitHub data
+
+These files are project-specific and should be `.gitignore`d — each team configures their own.
+
+> **Tip:** Use `systemPrompt` instead of `systemPromptFile` for short inline instructions directly in `minions.json`.
+
 ### `permissions`
 
 Global permission rules applied to all roles. These are merged with the default permissions.
