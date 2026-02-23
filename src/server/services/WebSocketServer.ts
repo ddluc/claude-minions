@@ -31,11 +31,13 @@ export class WebSocketServer {
     this.clients.set(clientId, connection);
     console.log(`Client connected: ${clientId}`);
 
-    ws.on('message', (data) => {
+    ws.on('message', (msg) => {
       try {
-        const rawData = data.toString();
-        console.log(`Received message from ${clientId}: ${rawData.substring(0, 200)}`);
-        this.broadcaster.handle(JSON.parse(rawData), clientId);
+        const data = JSON.parse(msg.toString());
+        if (data.content) { 
+          console.log(`Received message from ${clientId}: ${data.content.substring(0, 50)}`);
+        }
+        this.broadcaster.handle(data, clientId);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.error(`Error handling message from ${clientId}:`, errorMsg);
