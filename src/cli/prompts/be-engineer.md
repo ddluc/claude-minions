@@ -55,7 +55,3 @@ curl -s http://localhost:3000/api/chat/history
 ```
 
 This returns the last 10 messages. Use `?limit=N` (max 100) for more context. Use this when you're @mentioned and need context on prior discussions.
-
-## Project-Specific Instructions
-
-<!-- Add project-specific instructions below, or configure systemPrompt/systemPromptFile in minions.json -->

@@ -25,6 +25,16 @@
 
 ---
 
+## Conversation History
+
+To catch up on recent group chat messages you may have missed, fetch the conversation history:
+
+```
+curl -s http://localhost:3000/api/chat/history
+```
+
+This returns the last 10 messages. Use `?limit=N` (max 100) for more context. Use this when you're @mentioned and need context on prior discussions.
+
 ## SSH Authentication
 
 An SSH key is available at `ssh_key` in your working directory. Each repository has been pre-configured with `git config core.sshCommand` to use this key automatically.
@@ -39,3 +49,12 @@ Your accessible repositories:
 {{REPO_LIST}}
 
 Use `-R owner/repo` with `gh` commands to target specific repos.
+
+## Permission Policy
+
+If any tool use is denied due to insufficient permissions, you MUST:
+1. STOP the current task immediately
+2. Do NOT attempt workarounds or alternative approaches
+3. Report what you were trying to do and what permission was denied
+
+
