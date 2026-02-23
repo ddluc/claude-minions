@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import type { AgentRole, Settings } from '../../../core/types.js';
+import type { AgentRole, Settings } from '../../core/types.js';
 import { buildAgentPrompt } from '../lib/prompts.js';
 import { resolvePermissions, writePermissionsFile } from '../lib/permissions.js';
 import { parseEnvFile } from '../lib/utils.js';

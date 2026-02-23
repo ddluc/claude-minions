@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import type { Message } from '../../../core/messages.js';
+import type { Message } from '../../core/messages.js';
 
 export class DaemonWebSocketClient {
   private ws: WebSocket | null = null;

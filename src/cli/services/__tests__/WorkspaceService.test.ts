@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { WorkspaceService } from '../WorkspaceService.js';
-import type { Settings } from '../../../../core/types.js';
+import type { Settings } from '../../../core/types.js';
 
 function makeSettings(overrides: Partial<Settings> = {}): Settings {
   return {

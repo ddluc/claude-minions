@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { SettingsSchema } from './schemas.js';
-import type { Settings } from '../../../core/types.js';
+import type { Settings } from '../../core/types.js';
 
 export function loadSettings(workspaceRoot: string): Settings {
   const settingsPath = path.join(workspaceRoot, 'minions.json');
