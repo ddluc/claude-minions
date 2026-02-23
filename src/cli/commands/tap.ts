@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import { log } from '../lib/logger.js';
 import { VALID_ROLES, DEFAULT_PORT } from '../../core/constants.js';
 import type { AgentRole } from '../../core/types.js';
@@ -22,10 +21,10 @@ export class TapCommand {
       log.error('Server not running. Run `minions up` first.');
     },
     resumingSession: (sessionId: string) => {
-      console.log(chalk.cyan(`Resuming session: ${sessionId}`));
+      log.info(`Resuming session: ${sessionId}`);
     },
     freshSession: () => {
-      console.log(chalk.cyan('Starting fresh session'));
+      log.info('Starting fresh session');
     },
     connectingToServer: (port: number) => {
       log.dim(`Connecting to server at ws://localhost:${port}/ws...`);
