@@ -36,12 +36,22 @@ export class MessageRouter {
     this.onSend = options.onSend;
   }
 
+  private expandMentions(mentions: Set<string>): Set<string> {
+    if (mentions.has('all')) {
+      mentions.delete('all');
+      for (const role of this.enabledRoles) {
+        mentions.add(role);
+      }
+    }
+    return mentions;
+  }
+
   /**
    * Entry point for incoming messages. Parses @mentions and enqueues to each
    * mentioned role that is enabled.
    */
   route(msg: ChatMessage): void {
-    const mentions = parseMentions(msg.content);
+    const mentions = this.expandMentions(parseMentions(msg.content));
 
     if (mentions.size === 0) {
       console.log(`No @mentions in message from ${msg.from} — skipping`);
@@ -146,7 +156,7 @@ export class MessageRouter {
         this.onSend(responseMsg);
 
         // Re-route @mentions in the response (agent-to-agent), skip self
-        const responseMentions = parseMentions(result.response);
+        const responseMentions = this.expandMentions(parseMentions(result.response));
         for (const mention of responseMentions) {
           const targetRole = mention as AgentRole;
           if (targetRole === role) continue;

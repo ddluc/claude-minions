@@ -6,8 +6,8 @@ import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import type { Message } from '../../core/messages.js';
-import type { AgentRole } from '../../core/types.js';
 import { DEFAULT_PORT } from '../../core/constants.js';
+import { getEnabledRoles } from '../../core/settings.js';
 
 function setupDaemonLogging(logFile: string) {
   const logStream = fs.createWriteStream(logFile, { flags: 'a' });
@@ -61,7 +61,7 @@ export class DaemonCommand {
     wsClient.connect();
 
     const router = new MessageRouter({
-      enabledRoles: Object.keys(settings.roles) as AgentRole[],
+      enabledRoles: getEnabledRoles(settings),
       maxDepth: 5,
       onProcess: async (role, prompt) => {
         const roleDir = workspace.getRoleDir(role);

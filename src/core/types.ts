@@ -19,6 +19,7 @@ export interface RoleConfig {
   model?: ClaudeModel;
   permissions?: PermissionConfig;
   personality?: string[];
+  enabled?: boolean;
 }
 
 export interface Settings {

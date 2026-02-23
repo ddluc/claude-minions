@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-const ROLE_MENTION_REGEX = /@(pm|cao|fe-engineer|be-engineer|qa)\b/g;
+const ROLE_MENTION_REGEX = /@(pm|cao|fe-engineer|be-engineer|qa|all)\b/g;
 
 export const ROLE_COLORS: Record<string, (text: string) => string> = {
   'cao': chalk.cyan,

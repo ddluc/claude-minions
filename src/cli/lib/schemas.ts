@@ -20,6 +20,7 @@ export const RoleConfigSchema = z.object({
   model: ClaudeModelSchema.optional(),
   permissions: PermissionConfigSchema.optional(),
   personality: z.array(z.string()).optional(),
+  enabled: z.boolean().default(true),
 }).refine(
   data => !(data.systemPrompt && data.systemPromptFile),
   { message: 'Cannot specify both systemPrompt and systemPromptFile' }
