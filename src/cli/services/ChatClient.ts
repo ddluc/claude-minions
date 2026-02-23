@@ -38,12 +38,6 @@ export class ChatClient {
     console.log();
   }
 
-  private systemMessage(content: string): void {
-    readline.clearLine(process.stdout, 0);
-    readline.cursorTo(process.stdout, 0);
-    console.log(chalk.dim.italic(`[system] ${content} \n`));
-  }
-
   private userEcho(time: string, content: string): void {
     readline.clearLine(process.stdout, 0);
     readline.cursorTo(process.stdout, 0);
@@ -70,7 +64,8 @@ export class ChatClient {
         }
 
         if (msg.type === 'system') {
-          this.systemMessage(msg.content);
+          const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour12: false });
+          this.agentMessage('system', time, msg.content);
           this.rl.prompt();
         }
       } catch {
