@@ -53,6 +53,13 @@ export class MessageRouter {
   route(msg: ChatMessage): void {
     const mentions = this.expandMentions(parseMentions(msg.content));
 
+    // Handle @status — return agent status, don't route to any agent
+    if (mentions.has('status')) {
+      mentions.delete('status');
+      this.sendStatus();
+      if (mentions.size === 0) return;
+    }
+
     if (mentions.size === 0) {
       console.log(`No @mentions in message from ${msg.from} — skipping`);
       return;
@@ -67,6 +74,24 @@ export class MessageRouter {
       console.log(`[${role}] Mentioned by ${msg.from}`);
       this.enqueue(role, msg, 0);
     }
+  }
+
+  private sendStatus(): void {
+    const lines = ['Agent Status:'];
+    for (const role of this.enabledRoles) {
+      const processing = this.isProcessing(role);
+      const queued = this.getQueueSize(role);
+      const status = processing
+        ? `processing${queued > 0 ? ` (${queued} queued)` : ''}`
+        : 'idle';
+      lines.push(`  ${role.padEnd(14)} ${status}`);
+    }
+    this.onSend({
+      type: 'chat',
+      from: 'system',
+      content: lines.join('\n'),
+      timestamp: new Date().toISOString(),
+    });
   }
 
   isProcessing(role: AgentRole): boolean {
