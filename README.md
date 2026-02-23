@@ -78,6 +78,15 @@ minions chat
 minions tap cao
 ```
 
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `minions init` | Initialize a new workspace with `minions.json` and `.minions/` directory |
+| `minions up` | Start the WebSocket server and daemon (foreground — Ctrl+C to stop) |
+| `minions tap <role>` | Tap into an agent's session interactively with full conversation history |
+| `minions chat` | Open interactive group chat to message agents via `@mentions` |
+
 ## Configuration
 
 All configuration lives in `minions.json` at your project root.
@@ -227,15 +236,6 @@ Every agent gets these permissions out of the box (configurable via `minions.jso
 
 Add custom rules per-role via the `permissions.allow` and `permissions.deny` fields in your config. Global deny rules always win — they cannot be overridden by role-level allow rules.
 
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `minions init` | Initialize a new workspace with `minions.json` and `.minions/` directory |
-| `minions up` | Start the WebSocket server and daemon (foreground — Ctrl+C to stop) |
-| `minions tap <role>` | Tap into an agent's session interactively with full conversation history |
-| `minions chat` | Open interactive group chat to message agents via `@mentions` |
-
 ## Chat Mentions
 
 In the group chat, `@mentions` route messages to specific agents. There are also special mentions:
@@ -247,38 +247,6 @@ In the group chat, `@mentions` route messages to specific agents. There are also
 | `@status` | Show the processing state and queue depth for every agent |
 
 Multiple agents can be mentioned in a single message (e.g., `@cao @be-engineer please coordinate on the API design`).
-
-## Workflow Example
-
-### Adding User Authentication
-
-**1. Start the system and open chat**
-```bash
-minions up
-minions chat
-```
-
-**2. Ask the CAO to architect the solution**
-```
-> @cao Please handle issue #42 — add user authentication
-```
-The CAO reads the codebase, designs the approach, and creates GitHub issues:
-- Issue #43: Backend auth endpoints (`role:be-engineer`)
-- Issue #44: Frontend login UI (`role:fe-engineer`)
-
-**3. Engineers pick up work automatically**
-
-The CAO notifies agents via group chat (`@be-engineer`, `@fe-engineer`). The daemon routes each `@mention` to the right agent's queue. The BE engineer implements JWT auth and opens PR #10. The FE engineer builds the login form and opens PR #11.
-
-**4. Tap in to check progress**
-```bash
-minions tap be-engineer
-```
-You see the full conversation history and can ask questions or give direction directly.
-
-**5. Review and merge**
-
-Both PRs are ready for your review. You approve and ship.
 
 ## Best Practices
 
