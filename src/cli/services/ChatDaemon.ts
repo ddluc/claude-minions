@@ -13,6 +13,10 @@ export interface ChatDaemonConfig {
   settings: Settings;
 }
 
+/**
+ * Long-running daemon that connects to the server via WebSocket, routes incoming
+ * chat messages to agents through the MessageRouter, and sends responses back.
+ */
 export class ChatDaemon {
   private ws: WebSocket | null = null;
   private router: MessageRouter;
@@ -25,6 +29,9 @@ export class ChatDaemon {
     this.router = this.buildRouter();
   }
 
+  /**
+   * Create the MessageRouter with process (spawn Claude) and send (write to WebSocket) callbacks.
+   */
   private buildRouter(): MessageRouter {
     const { enabledRoles, maxDepth, workspace, runner, settings } = this.config;
     return new MessageRouter({
@@ -59,6 +66,9 @@ export class ChatDaemon {
     });
   }
 
+  /**
+   * Connect to the server and register signal handlers for graceful shutdown.
+   */
   start(): void {
     this.connect();
     process.on('SIGTERM', () => this.stop());
@@ -66,6 +76,9 @@ export class ChatDaemon {
     console.log('Daemon running, monitoring all roles...');
   }
 
+  /**
+   * Stop reconnection attempts, close the WebSocket, and exit.
+   */
   stop(): void {
     console.log('Shutting down...');
     this.shouldReconnect = false;
@@ -76,6 +89,9 @@ export class ChatDaemon {
     process.exit(0);
   }
 
+  /**
+   * Establish WebSocket connection with auto-reconnect on disconnect.
+   */
   private connect(): void {
     this.ws = new WebSocket(this.config.serverUrl);
 

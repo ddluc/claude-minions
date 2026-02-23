@@ -7,6 +7,9 @@ import type { AgentRole, PermissionConfig, Repo, RoleConfig, Settings } from '..
 import { loadSettings } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 
+/**
+ * Interactive workspace initializer — creates minions.json and sets up .minions/ directories.
+ */
 export class InitCommand {
   messages = {
     foundConfig: () => {
@@ -38,6 +41,9 @@ export class InitCommand {
     },
   };
 
+  /**
+   * Walk the user through mode, repos, roles, SSH, and permissions via interactive prompts.
+   */
   private async promptForSettings(): Promise<Settings> {
     const { mode } = await inquirer.prompt([{
       type: 'list',
@@ -132,6 +138,9 @@ export class InitCommand {
     };
   }
 
+  /**
+   * Run init: load existing config or prompt for new one, then create workspace directories.
+   */
   async run(): Promise<void> {
     const cwd = process.cwd();
     const configPath = path.join(cwd, 'minions.json');

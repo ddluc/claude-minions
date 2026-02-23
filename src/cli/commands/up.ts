@@ -7,6 +7,9 @@ import { MinionsServer } from '../../server/MinionsServer.js';
 import { DEFAULT_PORT } from '../../core/constants.js';
 import { getEnabledRoles } from '../../core/settings.js';
 
+/**
+ * Starts the Minions server and daemon — prepares workspaces, clones repos, and begins routing messages.
+ */
 export class UpCommand {
   messages = {
     header: () => {
@@ -37,6 +40,9 @@ export class UpCommand {
     },
   };
 
+  /**
+   * Set up all roles, clone repos, start the HTTP/WebSocket server, and launch the daemon.
+   */
   async run(): Promise<void> {
     const workspaceRoot = getWorkspaceRoot();
     const settings = loadSettings(workspaceRoot);

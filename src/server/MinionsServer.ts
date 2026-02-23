@@ -2,6 +2,9 @@ import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer } from './services/WebSocketServer.js';
 
+/**
+ * HTTP + WebSocket server that hosts the chat API and real-time message transport.
+ */
 export class MinionsServer {
   private app: express.Application;
   private server: ReturnType<typeof createServer>;
@@ -15,6 +18,9 @@ export class MinionsServer {
     this.setupRoutes();
   }
 
+  /**
+   * Register HTTP routes: health check and chat history.
+   */
   private setupRoutes() {
     this.app.get('/api/health', (req, res) => {
       res.json({ status: 'ok' });
@@ -27,6 +33,9 @@ export class MinionsServer {
     });
   }
 
+  /**
+   * Start listening on the given port.
+   */
   start(port: number): Promise<void> {
     return new Promise((resolve) => {
       this.server.listen(port, () => {

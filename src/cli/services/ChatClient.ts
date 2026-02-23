@@ -9,6 +9,9 @@ import { colorRole } from '../lib/utils.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 marked.use(markedTerminal() as any);
 
+/**
+ * WebSocket client for interactive group chat with markdown rendering.
+ */
 export class ChatClient {
   private ws: WebSocket;
   private rl: readline.Interface;
@@ -21,14 +24,23 @@ export class ChatClient {
     });
   }
 
+  /**
+   * Render markdown content as formatted terminal output.
+   */
   private renderMarkdown(content: string): string {
     return (marked.parse(content) as string).trimEnd();
   }
 
+  /**
+   * Print a dim horizontal rule to visually separate messages.
+   */
   private separator(): void {
     console.log(chalk.dim('─'.repeat(60)));
   }
 
+  /**
+   * Display an agent's chat message with role label and timestamp.
+   */
   private agentMessage(from: string, time: string, content: string): void {
     readline.clearLine(process.stdout, 0);
     readline.cursorTo(process.stdout, 0);
@@ -38,6 +50,9 @@ export class ChatClient {
     console.log();
   }
 
+  /**
+   * Echo the user's own message back to the terminal.
+   */
   private userEcho(time: string, content: string): void {
     readline.clearLine(process.stdout, 0);
     readline.cursorTo(process.stdout, 0);
@@ -47,6 +62,9 @@ export class ChatClient {
     console.log();
   }
 
+  /**
+   * Open WebSocket connection and start the readline input loop.
+   */
   start(): void {
     this.ws.on('open', () => {
       this.rl.prompt();
@@ -103,6 +121,9 @@ export class ChatClient {
     });
   }
 
+  /**
+   * Close readline and WebSocket connections.
+   */
   disconnect(): void {
     this.rl.close();
     this.ws.close();
