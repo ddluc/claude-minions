@@ -35,7 +35,7 @@ export class ChatCommand {
     systemMessage: (content: string) => {
       readline.clearLine(process.stdout, 0);
       readline.cursorTo(process.stdout, 0);
-      console.log(chalk.dim.italic(`  [system] ${content}`));
+      console.log(chalk.dim.italic(`[system] ${content}`));
     },
     connectionError: (error: Error) => {
       log.error(`Connection error: ${error.message}`);
