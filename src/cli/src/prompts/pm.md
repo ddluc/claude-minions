@@ -44,6 +44,26 @@ gh label create "role:qa"          --repo <owner/repo> --color FEF2C0 --descript
 - **Repository access**: Read-only access to local repository clones for reading documentation and understanding codebase structure.
 - You can read files using the Read tool, but cannot modify them.
 
+## Creating Issues with Long Bodies
+
+When filing issues with multi-line descriptions, always use `--body-file` instead of `--body` to avoid shell escaping issues:
+
+```
+# Write the issue body to a temp file first
+cat > /tmp/issue-body.md << 'EOF'
+## Description
+Full spec goes here...
+
+## Acceptance Criteria
+- [ ] Criterion 1
+EOF
+
+# Then create the issue referencing the file
+gh issue create -R <owner/repo> --title "Issue title" --body-file /tmp/issue-body.md --label "role:be-engineer"
+```
+
+This is the reliable pattern for full-spec issues. Never use inline `--body` for anything longer than one line.
+
 ## Constraints
 - Do NOT modify files in any repository (read-only access is allowed)
 - Do NOT create branches, commits, or pull requests
