@@ -10,8 +10,12 @@ export interface ClientConnection {
 }
 
 export class ChatBroadcaster {
-  private paused = false;
+  private tapped = new Set<string>();
   private chatHistory: ChatMessage[] = [];
+
+  private get paused(): boolean {
+    return this.tapped.size > 0;
+  }
 
   constructor(private clients: Map<string, ClientConnection>) {}
 
@@ -26,21 +30,30 @@ export class ChatBroadcaster {
 
       if (message.type === 'chat_control') {
         if (message.action === 'pause') {
-          this.paused = true;
-          console.log('Chat paused — agent tapped into interactive mode');
+          this.tapped.add(message.role);
+          console.log(`Chat paused — @${message.role} tapped into interactive mode (${this.tapped.size} active)`);
           this.broadcastAll({
             type: 'system',
-            content: `@${message.role} is now in interactive mode — chat is temporarily paused`,
+            content: `@${message.role} is now in interactive mode — chat is paused (${this.tapped.size} active tap session${this.tapped.size === 1 ? '' : 's'})`,
             timestamp: new Date().toISOString(),
           });
         } else if (message.action === 'resume') {
-          this.paused = false;
-          console.log('Chat resumed');
-          this.broadcastAll({
-            type: 'system',
-            content: `@${message.role} has exited interactive mode — chat resumed`,
-            timestamp: new Date().toISOString(),
-          });
+          this.tapped.delete(message.role);
+          if (!this.paused) {
+            console.log('Chat resumed — all tap sessions ended');
+            this.broadcastAll({
+              type: 'system',
+              content: `@${message.role} has exited interactive mode — chat resumed`,
+              timestamp: new Date().toISOString(),
+            });
+          } else {
+            console.log(`@${message.role} exited tap — ${this.tapped.size} session(s) still active`);
+            this.broadcastAll({
+              type: 'system',
+              content: `@${message.role} has exited interactive mode — chat still paused (${this.tapped.size} remaining tap session${this.tapped.size === 1 ? '' : 's'})`,
+              timestamp: new Date().toISOString(),
+            });
+          }
         }
         return;
       }
