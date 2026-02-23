@@ -60,7 +60,7 @@ export class WebSocketServer {
 
     ws.send(JSON.stringify({
       type: 'system',
-      content: 'Connected to Minions server',
+      content: 'Connected to Minions server. Type @role to message agents. Ctrl+C to exit',
       timestamp: new Date().toISOString(),
     }));
   }
