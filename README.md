@@ -143,6 +143,34 @@ Each role accepts:
 - **`systemPromptFile`** — Path to a custom system prompt file (optional)
 - **`permissions`** — Role-specific permission overrides with `allow` and `deny` arrays (optional)
 
+### Project-Specific Prompts
+
+You can customize how agents behave in your project by creating prompt files and referencing them via `systemPromptFile`:
+
+```json
+"roles": {
+  "cao": {
+    "model": "opus",
+    "systemPromptFile": "./prompts/cao.md"
+  },
+  "be-engineer": {
+    "model": "sonnet",
+    "systemPromptFile": "./prompts/be-engineer.md"
+  }
+}
+```
+
+The content of each file is appended to the agent's built-in instructions when `minions up` runs. Use this to provide:
+
+- **Project architecture** — describe your codebase structure so agents have context
+- **Coding standards** — conventions, patterns, and guardrails specific to your project
+- **Workflows** — PR targets, branch naming, verification steps
+- **Role-specific behaviors** — e.g., teach the PM to generate status reports from GitHub data
+
+These files are project-specific and should be `.gitignore`d — each team configures their own.
+
+> **Tip:** Use `systemPrompt` instead of `systemPromptFile` for short inline instructions directly in `minions.json`.
+
 ### `permissions`
 
 Global permission rules applied to all roles. These are merged with the default permissions.
@@ -200,12 +228,9 @@ Add custom rules per-role via the `permissions.allow` and `permissions.deny` fie
 | Command | Description |
 |---------|-------------|
 | `minions init` | Initialize a new workspace with `minions.json` and `.minions/` directory |
-| `minions up` | Start the WebSocket server and chat daemon |
-| `minions down` | Stop the server and daemon |
+| `minions up` | Start the WebSocket server and daemon (foreground — Ctrl+C to stop) |
 | `minions tap <role>` | Tap into an agent's session interactively with full conversation history |
 | `minions chat` | Open interactive group chat to message agents via `@mentions` |
-| `minions status` | Show status of all agent processes |
-| `minions permissions update` | Re-apply permissions from `minions.json` to all role workspaces |
 
 ## Workflow Example
 
@@ -227,7 +252,7 @@ The CAO reads the codebase, designs the approach, and creates GitHub issues:
 
 **3. Engineers pick up work automatically**
 
-The daemon routes issues to the right agents. The BE engineer implements JWT auth and opens PR #10. The FE engineer builds the login form and opens PR #11.
+The CAO notifies agents via group chat (`@be-engineer`, `@fe-engineer`). The daemon routes each `@mention` to the right agent's queue. The BE engineer implements JWT auth and opens PR #10. The FE engineer builds the login form and opens PR #11.
 
 **4. Tap in to check progress**
 ```bash

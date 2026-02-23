@@ -31,5 +31,5 @@ minions.json
 minions.default.json
 minion_key
 
-# Minions
-.minions/
+# Project specific prompt (for internal development)
+prompts
