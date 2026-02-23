@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import type { AgentRole, RoleConfig, Repo } from '../../core/types.js';
+import { PERSONALITY_TAGS } from '../../core/constants.js';
 import { parseGitUrl } from './git.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,19 @@ function loadCoreSections(): [string, string, string] {
 export function buildAgentPrompt(role: AgentRole, config: RoleConfig, workspaceRoot: string, repos: Repo[] = [], hasSshKey = false, roleDir?: string): string {
   const [workingDirSection, sshSection, repoSection] = loadCoreSections();
   let content = loadAgentPrompt(role);
+
+  if (config.personality && config.personality.length > 0) {
+    const traits = config.personality
+      .filter(tag => tag in PERSONALITY_TAGS)
+      .map(tag => `- ${PERSONALITY_TAGS[tag]}`);
+
+    if (traits.length > 0) {
+      content += '\n\n## Personality\n\n';
+      content += 'These traits define how you communicate — not how you think or work. ';
+      content += 'Your work quality, reasoning, and technical decisions are unaffected.\n\n';
+      content += traits.join('\n') + '\n';
+    }
+  }
 
   if (roleDir) {
     content += '\n\n' + workingDirSection
