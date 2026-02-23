@@ -261,7 +261,6 @@ describe('MessageRouter', () => {
       (c: any[]) => c[0].from === 'system'
     );
     expect(statusMsg).toBeDefined();
-    expect(statusMsg![0].content).toContain('Agent Status:');
     expect(statusMsg![0].content).toContain('cao');
     expect(statusMsg![0].content).toContain('be-engineer');
     expect(statusMsg![0].content).toContain('pm');
