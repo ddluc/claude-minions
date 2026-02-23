@@ -96,6 +96,7 @@ export class ChatClient {
         const timestamp = new Date().toISOString();
         this.ws.send(JSON.stringify({ type: 'chat', from: 'user', content: trimmed, timestamp }));
       }
+      console.log();
       this.rl.prompt();
     });
 
