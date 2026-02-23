@@ -49,7 +49,6 @@ export class ChatClient {
 
   start(): void {
     this.ws.on('open', () => {
-      log.dim('Connected to minions chat. Type @role to message agents. Ctrl+C to exit.\n');
       this.rl.prompt();
     });
 
