@@ -52,6 +52,11 @@ describe('parseMentions', () => {
     const mentions = parseMentions('@all and @cao please review');
     expect(mentions).toEqual(new Set(['all', 'cao']));
   });
+
+  it('parses @status mention', () => {
+    const mentions = parseMentions('@status');
+    expect(mentions).toEqual(new Set(['status']));
+  });
 });
 
 describe('colorRole', () => {
