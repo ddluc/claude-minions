@@ -22,6 +22,7 @@ export class ChatClient {
       input: process.stdin,
       output: process.stdout,
     });
+    this.rl.setPrompt(chalk.bold.white('you') + chalk.dim(' > '));
   }
 
   /**
@@ -47,18 +48,6 @@ export class ChatClient {
     this.separator();
     console.log(`${colorRole(from)} ${chalk.dim(`(${time})`)}`);
     console.log(this.renderMarkdown(content));
-    console.log();
-  }
-
-  /**
-   * Echo the user's own message back to the terminal.
-   */
-  private userEcho(time: string, content: string): void {
-    readline.clearLine(process.stdout, 0);
-    readline.cursorTo(process.stdout, 0);
-    this.separator();
-    console.log(`${chalk.bold.white('you')} ${chalk.dim(`(${time})`)}`);
-    console.log(content);
     console.log();
   }
 
@@ -104,15 +93,11 @@ export class ChatClient {
     this.rl.on('line', (input) => {
       const trimmed = input.trim();
       if (trimmed) {
-        const content = trimmed;
         const timestamp = new Date().toISOString();
-        this.ws.send(JSON.stringify({ type: 'chat', from: 'user', content, timestamp }));
-        const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-        this.userEcho(time, content);
-        this.rl.prompt();
-      } else {
-        this.rl.prompt();
+        this.ws.send(JSON.stringify({ type: 'chat', from: 'user', content: trimmed, timestamp }));
       }
+      console.log();
+      this.rl.prompt();
     });
 
     this.rl.on('close', () => {
