@@ -107,8 +107,9 @@ export class InitCommand {
     };
 
     const roles: Partial<Record<AgentRole, RoleConfig>> = {};
-    for (const role of selectedRoles) {
-      roles[role as AgentRole] = { model: RECOMMENDED_MODELS[role as AgentRole] };
+    for (const role of VALID_ROLES) {
+      const enabled = selectedRoles.includes(role);
+      roles[role as AgentRole] = { model: RECOMMENDED_MODELS[role as AgentRole], enabled };
     }
 
     const { sshKeyPath } = await inquirer.prompt([{
