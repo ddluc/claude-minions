@@ -42,14 +42,15 @@ export class ChatClient {
   /**
    * Display an agent's chat message with role label and timestamp.
    */
-  private agentMessage(from: string, time: string, content: string): void {
+  private renderMessage(from: string, time: string, content: string): void {
     readline.clearLine(process.stdout, 0);
     readline.cursorTo(process.stdout, 0);
     this.separator();
     console.log(`${colorRole(from)} ${chalk.dim(`(${time})`)}`);
     console.log(this.renderMarkdown(content));
-    console.log();
+    console.log('');
   }
+
 
   /**
    * Open WebSocket connection and start the readline input loop.
@@ -63,17 +64,14 @@ export class ChatClient {
       try {
         const msg = JSON.parse(data.toString());
 
+        const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour12: false });
         if (msg.type === 'chat' && msg.from !== 'user') {
-          const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour12: false });
-          this.agentMessage(msg.from, time, msg.content);
-          this.rl.prompt();
+          this.renderMessage(msg.from, time, msg.content);
         }
-
         if (msg.type === 'system') {
-          const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour12: false });
-          this.agentMessage('system', time, msg.content);
-          this.rl.prompt();
+          this.renderMessage('system', time, msg.content);
         }
+        this.rl.prompt();
       } catch {
         // Ignore unparseable messages
       }
