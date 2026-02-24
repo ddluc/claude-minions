@@ -4,7 +4,7 @@
 
 Claude Minions coordinates multiple AI agents — each with a defined role — to collaborate on your codebase through GitHub. Agents communicate via group chat, create issues, implement features on branches, and open PRs for your review.
 
-![Claude Minions Demo — multi-agent coordination via group chat](docs/demo.png)
+![Claude Minions Demo — multi-agent coordination via group chat](docs/demo.2.24.26.png)
 
 > **Note:** In the default `ask` mode, agents have limited autonomy in daemon/chat mode — Claude Code's safety prompts cannot be approved without an interactive terminal. You can manually approve interactively via `minions tap`. For fully autonomous multi-agent workflows, run in `yolo` mode on a sandboxed server (EC2, Docker). See [Permissions & Modes](#permissions--modes) for details.
 
