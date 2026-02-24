@@ -98,6 +98,19 @@ describe('WorkspaceService', () => {
       expect(fs.existsSync(path.join(tmpDir, '.minions', 'be-engineer', 'CLAUDE.md'))).toBe(true);
       expect(fs.existsSync(path.join(tmpDir, '.minions', 'cao', 'CLAUDE.md'))).toBe(true);
     });
+
+    it('skips roles with enabled: false', () => {
+      const disabledSettings = makeSettings({
+        roles: {
+          'be-engineer': { model: 'sonnet', enabled: false },
+          'cao': { model: 'opus' },
+        },
+      });
+      const disabledWs = new WorkspaceService(tmpDir, disabledSettings);
+      disabledWs.setupAllRoles();
+      expect(fs.existsSync(path.join(tmpDir, '.minions', 'be-engineer', 'CLAUDE.md'))).toBe(false);
+      expect(fs.existsSync(path.join(tmpDir, '.minions', 'cao', 'CLAUDE.md'))).toBe(true);
+    });
   });
 
   describe('copySshKey', () => {

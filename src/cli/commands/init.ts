@@ -7,6 +7,9 @@ import type { AgentRole, PermissionConfig, Repo, RoleConfig, Settings } from '..
 import { loadSettings } from '../lib/config.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 
+/**
+ * Interactive workspace initializer — creates minions.json and sets up .minions/ directories.
+ */
 export class InitCommand {
   messages = {
     foundConfig: () => {
@@ -38,6 +41,9 @@ export class InitCommand {
     },
   };
 
+  /**
+   * Walk the user through mode, repos, roles, SSH, and permissions via interactive prompts.
+   */
   private async promptForSettings(): Promise<Settings> {
     const { mode } = await inquirer.prompt([{
       type: 'list',
@@ -101,8 +107,9 @@ export class InitCommand {
     };
 
     const roles: Partial<Record<AgentRole, RoleConfig>> = {};
-    for (const role of selectedRoles) {
-      roles[role as AgentRole] = { model: RECOMMENDED_MODELS[role as AgentRole] };
+    for (const role of VALID_ROLES) {
+      const enabled = selectedRoles.includes(role);
+      roles[role as AgentRole] = { model: RECOMMENDED_MODELS[role as AgentRole], enabled };
     }
 
     const { sshKeyPath } = await inquirer.prompt([{
@@ -132,6 +139,9 @@ export class InitCommand {
     };
   }
 
+  /**
+   * Run init: load existing config or prompt for new one, then create workspace directories.
+   */
   async run(): Promise<void> {
     const cwd = process.cwd();
     const configPath = path.join(cwd, 'minions.json');
@@ -151,19 +161,27 @@ export class InitCommand {
     const workspace = new WorkspaceService(cwd, settings);
     const roles = Object.keys(settings.roles) as AgentRole[];
 
-    for (const role of roles) {
-      workspace.ensureRoleDir(role as AgentRole);
-    }
+    for (const role of roles) workspace.ensureRoleDir(role as AgentRole);
     this.messages.dirsCreated(roles);
 
-    if (workspace.ensureEnvTemplate()) {
-      this.messages.envTemplateCreated();
-    }
+    if (workspace.ensureEnvTemplate()) this.messages.envTemplateCreated();
+    if (workspace.ensureGitignore()) this.messages.gitignoreUpdated();
 
-    if (workspace.ensureGitignore()) {
-      this.messages.gitignoreUpdated();
-    }
+    this.messages.initialized();
+  }
 
+  /**
+   * Run the interactive prompt without writing any workspace files.
+   * Outputs the resulting settings to minions.test.json for inspection.
+   */
+  async dryRun(): Promise<void> {
+    const cwd = process.cwd();
+    log.dim('Running initialization dry run')
+    this.messages.setupHeader();
+    const settings = await this.promptForSettings();
+    const testPath = path.join(cwd, 'minions.test.json');
+    fs.writeJSONSync(testPath, settings, { spaces: 2 });
+    log.dim(`\nWrote test settings to ${testPath}\n`);
     this.messages.initialized();
   }
 }

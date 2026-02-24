@@ -3,10 +3,14 @@ import type { Server } from 'http';
 import { ChatBroadcaster, type ClientConnection } from './ChatBroadcaster.js';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Manages WebSocket client connections and delegates message handling to ChatBroadcaster.
+ */
 export class WebSocketServer {
   private wss: WSServer;
   private clients: Map<string, ClientConnection>;
   private broadcaster: ChatBroadcaster;
+  private startupWarnings: { level: 'error' | 'warn'; message: string }[] = [];
 
   constructor(server: Server) {
     this.wss = new WSServer({ server, path: '/ws' });
@@ -16,10 +20,23 @@ export class WebSocketServer {
     this.wss.on('connection', (ws) => this.handleConnection(ws));
   }
 
+  /**
+   * Register a warning or error to send to each chat client on connect.
+   */
+  addStartupWarning(level: 'error' | 'warn', message: string): void {
+    this.startupWarnings.push({ level, message });
+  }
+
+  /**
+   * Return recent chat messages from the broadcaster's history.
+   */
   getChatHistory(limit?: number) {
     return this.broadcaster.getHistory(limit);
   }
 
+  /**
+   * Register a new client, wire up message/close/error handlers, and send a welcome message.
+   */
   private handleConnection(ws: WebSocket) {
     const clientId = uuidv4();
 
@@ -60,8 +77,17 @@ export class WebSocketServer {
 
     ws.send(JSON.stringify({
       type: 'system',
-      content: 'Connected to Minions server',
+      content: 'Connected to Minions server. Type @role to message agents. Ctrl+C to exit',
       timestamp: new Date().toISOString(),
     }));
+
+    for (const { level, message } of this.startupWarnings) {
+      const prefix = level === 'error' ? '🚨 ERROR:' : '⚠ WARNING:';
+      ws.send(JSON.stringify({
+        type: 'system',
+        content: `${prefix} ${message}`,
+        timestamp: new Date().toISOString(),
+      }));
+    }
   }
 }

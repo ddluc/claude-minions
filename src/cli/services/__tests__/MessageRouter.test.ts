@@ -224,4 +224,108 @@ describe('MessageRouter', () => {
     });
     expect(router.getQueueSize('cao' as AgentRole)).toBe(0);
   });
+
+  it('@all expands to all enabled roles', async () => {
+    const { router, onProcess } = makeRouter({
+      enabledRoles: ['cao', 'be-engineer', 'pm'],
+    });
+    router.route(makeMsg('hey @all please help'));
+    await flush();
+    expect(onProcess).toHaveBeenCalledTimes(3);
+    const roles = (onProcess as ReturnType<typeof vi.fn>).mock.calls.map((c: any[]) => c[0]);
+    expect(roles).toContain('cao');
+    expect(roles).toContain('be-engineer');
+    expect(roles).toContain('pm');
+  });
+
+  it('@all with explicit mention does not duplicate', async () => {
+    const { router, onProcess } = makeRouter({
+      enabledRoles: ['cao', 'be-engineer'],
+    });
+    router.route(makeMsg('@all and @cao please check'));
+    await flush();
+    // cao appears in both @all and explicit, should only process once
+    const roles = (onProcess as ReturnType<typeof vi.fn>).mock.calls.map((c: any[]) => c[0]);
+    expect(roles.filter((r: string) => r === 'cao')).toHaveLength(1);
+    expect(onProcess).toHaveBeenCalledTimes(2);
+  });
+
+  it('@status returns a system message listing all enabled roles', async () => {
+    const { router, onSend, onProcess } = makeRouter({
+      enabledRoles: ['cao', 'be-engineer', 'pm'],
+    });
+    router.route(makeMsg('@status'));
+    await flush();
+    expect(onProcess).not.toHaveBeenCalled();
+    const statusMsg = (onSend as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c: any[]) => c[0].from === 'system'
+    );
+    expect(statusMsg).toBeDefined();
+    expect(statusMsg![0].content).toContain('cao');
+    expect(statusMsg![0].content).toContain('be-engineer');
+    expect(statusMsg![0].content).toContain('pm');
+  });
+
+  it('@status alongside other mentions — sends status AND routes other mentions', async () => {
+    const { router, onSend, onProcess } = makeRouter({
+      enabledRoles: ['cao', 'be-engineer'],
+    });
+    router.route(makeMsg('@status @cao hello'));
+    await flush();
+    const statusMsg = (onSend as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c: any[]) => c[0].from === 'system'
+    );
+    expect(statusMsg).toBeDefined();
+    expect(onProcess).toHaveBeenCalledOnce();
+    expect(onProcess).toHaveBeenCalledWith('cao', expect.stringContaining('hello'));
+  });
+
+  it('@status shows processing state with queue count', async () => {
+    let unblock!: () => void;
+    const blocked = new Promise<void>(res => { unblock = res; });
+
+    const onProcess = vi.fn()
+      .mockImplementationOnce(async () => {
+        await blocked;
+        return { response: 'done' };
+      });
+    const onSend = vi.fn();
+    const router = new MessageRouter({
+      enabledRoles: ['cao', 'be-engineer'],
+      maxDepth: 5,
+      onProcess,
+      onSend,
+    });
+
+    // Start processing cao — will block
+    router.route(makeMsg('@cao message one'));
+    // Queue a second message while processing
+    router.route(makeMsg('@cao message two'));
+    // Check status while cao is processing with 1 queued
+    router.route(makeMsg('@status'));
+
+    const statusMsg = (onSend as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c: any[]) => c[0].from === 'system'
+    );
+    expect(statusMsg).toBeDefined();
+    expect(statusMsg![0].content).toContain('processing');
+
+    unblock();
+    await flush();
+  });
+
+  it('@all in agent response does not expand — only explicit mentions re-route', async () => {
+    const onProcess = vi.fn()
+      .mockResolvedValueOnce({ response: 'hey @all check this out' })
+      .mockResolvedValue({ response: 'done' });
+    const { router } = makeRouter({
+      enabledRoles: ['cao', 'be-engineer', 'pm'],
+      onProcess,
+    });
+    router.route(makeMsg('@cao start'));
+    await flush();
+    const roles = onProcess.mock.calls.map((c: any[]) => c[0]);
+    // @all in agent response should NOT expand — prevents broadcast storms
+    expect(roles).toEqual(['cao']);
+  });
 });

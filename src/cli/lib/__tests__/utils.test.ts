@@ -42,6 +42,21 @@ describe('parseMentions', () => {
     const second = parseMentions('@be-engineer world');
     expect(second).toEqual(new Set(['be-engineer']));
   });
+
+  it('parses @all mention', () => {
+    const mentions = parseMentions('hey @all please check this');
+    expect(mentions).toEqual(new Set(['all']));
+  });
+
+  it('parses @all alongside explicit role mentions', () => {
+    const mentions = parseMentions('@all and @cao please review');
+    expect(mentions).toEqual(new Set(['all', 'cao']));
+  });
+
+  it('parses @status mention', () => {
+    const mentions = parseMentions('@status');
+    expect(mentions).toEqual(new Set(['status']));
+  });
 });
 
 describe('colorRole', () => {

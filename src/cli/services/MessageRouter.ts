@@ -20,6 +20,9 @@ interface QueuedItem {
   depth: number;
 }
 
+/**
+ * Routes chat messages to agent queues based on @mentions and processes them sequentially per role.
+ */
 export class MessageRouter {
   private enabledRoles: Set<AgentRole>;
   private maxDepth: number;
@@ -37,11 +40,31 @@ export class MessageRouter {
   }
 
   /**
+   * Replace @all with individual mentions for each enabled role.
+   */
+  private expandMentions(mentions: Set<string>): Set<string> {
+    if (mentions.has('all')) {
+      mentions.delete('all');
+      for (const role of this.enabledRoles) {
+        mentions.add(role);
+      }
+    }
+    return mentions;
+  }
+
+  /**
    * Entry point for incoming messages. Parses @mentions and enqueues to each
    * mentioned role that is enabled.
    */
   route(msg: ChatMessage): void {
-    const mentions = parseMentions(msg.content);
+    const mentions = this.expandMentions(parseMentions(msg.content));
+
+    // Handle @status — return agent status, don't route to any agent
+    if (mentions.has('status')) {
+      mentions.delete('status');
+      this.sendStatus();
+      if (mentions.size === 0) return;
+    }
 
     if (mentions.size === 0) {
       console.log(`No @mentions in message from ${msg.from} — skipping`);
@@ -59,14 +82,44 @@ export class MessageRouter {
     }
   }
 
+  /**
+   * Broadcast a system message with each enabled role's current processing state.
+   */
+  private sendStatus(): void {
+    const lines = ['--'];
+    for (const role of this.enabledRoles) {
+      const processing = this.isProcessing(role);
+      const queued = this.getQueueSize(role);
+      const status = processing
+        ? `processing${queued > 0 ? ` (${queued} queued)` : ''}`
+        : 'idle';
+      lines.push(`${role.padEnd(14)} ${status}`);
+    }
+    this.onSend({
+      type: 'chat',
+      from: 'system',
+      content: lines.join('\n'),
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Check if a role is currently processing a message.
+   */
   isProcessing(role: AgentRole): boolean {
     return this.processing.get(role) ?? false;
   }
 
+  /**
+   * Return the number of messages waiting in a role's queue.
+   */
   getQueueSize(role: AgentRole): number {
     return this.queues.get(role)?.length ?? 0;
   }
 
+  /**
+   * Add a message to a role's queue and kick off processing if idle.
+   */
   private enqueue(role: AgentRole, msg: ChatMessage, depth: number): void {
     if (!this.queues.has(role)) {
       this.queues.set(role, []);
@@ -93,6 +146,10 @@ export class MessageRouter {
     return lines.join('\n');
   }
 
+  /**
+   * Process queued messages for a role: batch, invoke the agent, send the response,
+   * and re-route any @mentions in the agent's reply.
+   */
   private async processQueue(role: AgentRole): Promise<void> {
     if (this.processing.get(role)) return;
 
@@ -146,6 +203,7 @@ export class MessageRouter {
         this.onSend(responseMsg);
 
         // Re-route @mentions in the response (agent-to-agent), skip self
+        // Don't expand @all in responses — only explicit mentions to prevent broadcast storms
         const responseMentions = parseMentions(result.response);
         for (const mention of responseMentions) {
           const targetRole = mention as AgentRole;

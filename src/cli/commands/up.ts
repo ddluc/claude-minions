@@ -1,10 +1,16 @@
 import { log } from '../lib/logger.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { checkClaudeVersion } from '../lib/utils.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
+import { ChatDaemon } from '../services/ChatDaemon.js';
+import { ClaudeRunner } from '../services/ClaudeRunner.js';
 import { MinionsServer } from '../../server/MinionsServer.js';
-import { DaemonCommand } from './daemon.js';
 import { DEFAULT_PORT } from '../../core/constants.js';
+import { getEnabledRoles } from '../../core/settings.js';
 
+/**
+ * Starts the Minions server and daemon — prepares workspaces, clones repos, and begins routing messages.
+ */
 export class UpCommand {
   messages = {
     header: () => {
@@ -35,18 +41,31 @@ export class UpCommand {
     },
   };
 
+  /**
+   * Set up all roles, clone repos, start the HTTP/WebSocket server, and launch the daemon.
+   */
   async run(): Promise<void> {
     const workspaceRoot = getWorkspaceRoot();
     const settings = loadSettings(workspaceRoot);
 
     this.messages.header();
+    const versionCheck = checkClaudeVersion();
+    if (versionCheck) {
+      if (versionCheck.level === 'error') {
+        log.error(versionCheck.message);
+      } else {
+        log.warn(versionCheck.message);
+      }
+    }
     this.messages.preparingWorkspace();
 
     const workspace = new WorkspaceService(workspaceRoot, settings);
     const hasSshKey = !!settings.ssh;
 
+    const enabledRoles = getEnabledRoles(settings);
+
     workspace.setupAllRoles(hasSshKey);
-    for (const role of Object.keys(settings.roles)) {
+    for (const role of enabledRoles) {
       this.messages.roleConfigured(role);
     }
 
@@ -63,11 +82,21 @@ export class UpCommand {
 
     const port = settings.serverPort || DEFAULT_PORT;
     const srv = new MinionsServer();
+    if (versionCheck) {
+      srv.addStartupWarning(versionCheck.level, versionCheck.message);
+    }
     await srv.start(port);
 
-    const roles = Object.keys(settings.roles);
-    this.messages.ready(roles, port);
+    this.messages.ready(enabledRoles, port);
 
-    await new DaemonCommand().run();
+    const daemon = new ChatDaemon({
+      serverUrl: `ws://localhost:${port}/ws`,
+      enabledRoles,
+      maxDepth: 5,
+      workspace,
+      runner: new ClaudeRunner(),
+      settings,
+    });
+    daemon.start();
   }
 }

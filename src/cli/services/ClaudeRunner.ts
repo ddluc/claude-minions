@@ -30,6 +30,9 @@ export interface HeadlessResult {
   error: string | null;
 }
 
+/**
+ * Spawns Claude Code CLI processes in interactive (tap) or headless (daemon) mode.
+ */
 export class ClaudeRunner {
   /**
    * Build Claude CLI arguments from options. Pure function.

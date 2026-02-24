@@ -26,6 +26,9 @@ export const MessageSchema = z.discriminatedUnion('type', [
   ChatControlMessageSchema,
 ]);
 
+/**
+ * Parse and validate raw message data against the MessageSchema discriminated union.
+ */
 export function validateMessage(data: unknown) {
   return MessageSchema.parse(data);
 }
