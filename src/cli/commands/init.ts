@@ -141,12 +141,10 @@ export class InitCommand {
   private dryRun = false;
 
   /**
-   * Run action if not in dry-run mode, otherwise log what would happen.
+   * Run action if not in dry-run mode, otherwise skip silently.
    */
-  private execute(action: () => void, dryRunMessage: string): void {
-    if (this.dryRun) {
-      log.dim(`[dry-run] ${dryRunMessage}`);
-    } else {
+  private execute(action: () => void): void {
+    if (!this.dryRun) {
       action();
     }
   }
@@ -159,10 +157,6 @@ export class InitCommand {
     const cwd = process.cwd();
     const configPath = path.join(cwd, 'minions.json');
 
-    if (this.dryRun) {
-      log.dim('[dry-run] No files will be written.\n');
-    }
-
     let settings: Settings;
 
     if (!this.dryRun && fs.existsSync(configPath)) {
@@ -171,9 +165,12 @@ export class InitCommand {
     } else {
       this.messages.setupHeader();
       settings = await this.promptForSettings();
+      if (this.dryRun) {
+        log.info('\nGenerated settings:\n');
+        console.log(JSON.stringify(settings, null, 2));
+      }
       this.execute(
-        () => { fs.writeJSONSync(configPath, settings, { spaces: 2 }); this.messages.createdConfig(); },
-        'Would create minions.json'
+        () => { fs.writeJSONSync(configPath, settings, { spaces: 2 }); this.messages.createdConfig(); }
       );
     }
 
@@ -181,18 +178,15 @@ export class InitCommand {
     const roles = Object.keys(settings.roles) as AgentRole[];
 
     this.execute(
-      () => { for (const role of roles) workspace.ensureRoleDir(role as AgentRole); this.messages.dirsCreated(roles); },
-      `Would create .minions/ directories for: ${roles.join(', ')}`
+      () => { for (const role of roles) workspace.ensureRoleDir(role as AgentRole); this.messages.dirsCreated(roles); }
     );
 
     this.execute(
-      () => { if (workspace.ensureEnvTemplate()) this.messages.envTemplateCreated(); },
-      'Would create .env template'
+      () => { if (workspace.ensureEnvTemplate()) this.messages.envTemplateCreated(); }
     );
 
     this.execute(
-      () => { if (workspace.ensureGitignore()) this.messages.gitignoreUpdated(); },
-      'Would update .gitignore'
+      () => { if (workspace.ensureGitignore()) this.messages.gitignoreUpdated(); }
     );
 
     this.messages.initialized();
