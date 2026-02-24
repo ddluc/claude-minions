@@ -166,7 +166,7 @@ export class InitCommand {
       this.messages.setupHeader();
       settings = await this.promptForSettings();
       if (this.dryRun) {
-        const dryRunPath = path.join(cwd, 'minions.dry-run.json');
+        const dryRunPath = path.join(cwd, 'minions.test.json');
         fs.writeJSONSync(dryRunPath, settings, { spaces: 2 });
         log.dim(`\nWrote test settings to ${dryRunPath}\n`);
       }
