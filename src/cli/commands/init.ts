@@ -166,8 +166,9 @@ export class InitCommand {
       this.messages.setupHeader();
       settings = await this.promptForSettings();
       if (this.dryRun) {
-        log.info('\nGenerated settings:\n');
-        console.log(JSON.stringify(settings, null, 2));
+        const dryRunPath = path.join(cwd, 'minions.dry-run.json');
+        fs.writeJSONSync(dryRunPath, settings, { spaces: 2 });
+        log.dim(`\nWrote test settings to ${dryRunPath}\n`);
       }
       this.execute(
         () => { fs.writeJSONSync(configPath, settings, { spaces: 2 }); this.messages.createdConfig(); }
