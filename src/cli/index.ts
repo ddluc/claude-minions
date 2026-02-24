@@ -17,7 +17,7 @@ program
   .command('init')
   .description('Initialize a new minions workspace')
   .option('--dry-run', 'Run prompts without writing any files')
-  .action((opts) => new InitCommand().run({ dryRun: opts.dryRun }));
+  .action((opts) => { const cmd = new InitCommand(); opts.dryRun ? cmd.dryRun() : cmd.run(); });
 
 program
   .command('up')
