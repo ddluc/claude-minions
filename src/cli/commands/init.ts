@@ -176,6 +176,7 @@ export class InitCommand {
    */
   async dryRun(): Promise<void> {
     const cwd = process.cwd();
+    log.dim('Running initialization dry run')
     this.messages.setupHeader();
     const settings = await this.promptForSettings();
     const testPath = path.join(cwd, 'minions.test.json');
