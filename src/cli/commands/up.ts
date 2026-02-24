@@ -49,9 +49,13 @@ export class UpCommand {
     const settings = loadSettings(workspaceRoot);
 
     this.messages.header();
-    const versionWarning = checkClaudeVersion();
-    if (versionWarning) {
-      log.warn(versionWarning);
+    const versionCheck = checkClaudeVersion();
+    if (versionCheck) {
+      if (versionCheck.level === 'error') {
+        log.error(versionCheck.message);
+      } else {
+        log.warn(versionCheck.message);
+      }
     }
     this.messages.preparingWorkspace();
 
@@ -78,8 +82,8 @@ export class UpCommand {
 
     const port = settings.serverPort || DEFAULT_PORT;
     const srv = new MinionsServer();
-    if (versionWarning) {
-      srv.addStartupWarning(versionWarning);
+    if (versionCheck) {
+      srv.addStartupWarning(versionCheck.level, versionCheck.message);
     }
     await srv.start(port);
 

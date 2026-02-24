@@ -36,27 +36,40 @@ export function colorRole(role: string): string {
   return colorFn(role);
 }
 
+export interface VersionCheckResult {
+  level: 'error' | 'warn';
+  message: string;
+}
+
 /**
- * Check the installed Claude Code CLI version against the known-compatible version. Returns a warning string on mismatch, or null if OK.
+ * Check the installed Claude Code CLI version against the known-compatible version. Returns an error for major mismatch, a warning for minor mismatch, or null if OK.
  */
-export function checkClaudeVersion(): string | null {
+export function checkClaudeVersion(): VersionCheckResult | null {
   try {
     const result = spawnSync('claude', ['--version'], { encoding: 'utf-8', timeout: 5000 });
     if (result.error || result.status !== 0) {
-      return 'Could not determine Claude Code CLI version. Is it installed?';
+      return { level: 'error', message: 'Could not determine Claude Code CLI version. Is it installed?' };
     }
     const output = result.stdout.trim();
-    const match = output.match(/(\d+\.\d+\.\d+)/);
+    const match = output.match(/(\d+)\.(\d+)\.\d+/);
     if (!match) {
-      return `Unexpected Claude Code version format: ${output}`;
+      return { level: 'warn', message: `Unexpected Claude Code version format: ${output}` };
     }
-    const installed = match[1];
-    if (installed !== CLAUDE_CODE_VERSION) {
-      return `Claude Code version mismatch: installed ${installed}, tested with ${CLAUDE_CODE_VERSION}`;
+    const expectedMatch = CLAUDE_CODE_VERSION.match(/(\d+)\.(\d+)\.\d+/);
+    if (!expectedMatch) {
+      return null;
+    }
+    const [installedMajor, installedMinor] = [match[1], match[2]];
+    const [expectedMajor, expectedMinor] = [expectedMatch[1], expectedMatch[2]];
+    if (installedMajor !== expectedMajor) {
+      return { level: 'error', message: `Claude Code major version mismatch: installed ${match[0]}, tested with ${CLAUDE_CODE_VERSION}. This may cause breaking changes.` };
+    }
+    if (installedMinor !== expectedMinor) {
+      return { level: 'warn', message: `Claude Code minor version mismatch: installed ${match[0]}, tested with ${CLAUDE_CODE_VERSION}` };
     }
     return null;
   } catch {
-    return 'Could not check Claude Code CLI version.';
+    return { level: 'warn', message: 'Could not check Claude Code CLI version.' };
   }
 }
 

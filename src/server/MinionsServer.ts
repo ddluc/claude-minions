@@ -34,10 +34,10 @@ export class MinionsServer {
   }
 
   /**
-   * Register a warning to display to chat clients on connect.
+   * Register a warning or error to display to chat clients on connect.
    */
-  addStartupWarning(warning: string): void {
-    this.wss.addStartupWarning(warning);
+  addStartupWarning(level: 'error' | 'warn', message: string): void {
+    this.wss.addStartupWarning(level, message);
   }
 
   /**
