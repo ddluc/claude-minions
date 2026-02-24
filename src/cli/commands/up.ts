@@ -49,7 +49,10 @@ export class UpCommand {
     const settings = loadSettings(workspaceRoot);
 
     this.messages.header();
-    checkClaudeVersion();
+    const versionWarning = checkClaudeVersion();
+    if (versionWarning) {
+      log.warn(versionWarning);
+    }
     this.messages.preparingWorkspace();
 
     const workspace = new WorkspaceService(workspaceRoot, settings);
@@ -75,6 +78,9 @@ export class UpCommand {
 
     const port = settings.serverPort || DEFAULT_PORT;
     const srv = new MinionsServer();
+    if (versionWarning) {
+      srv.addStartupWarning(versionWarning);
+    }
     await srv.start(port);
 
     this.messages.ready(enabledRoles, port);

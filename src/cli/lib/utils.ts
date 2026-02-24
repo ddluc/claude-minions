@@ -37,27 +37,26 @@ export function colorRole(role: string): string {
 }
 
 /**
- * Check the installed Claude Code CLI version against the known-compatible version and warn on mismatch.
+ * Check the installed Claude Code CLI version against the known-compatible version. Returns a warning string on mismatch, or null if OK.
  */
-export function checkClaudeVersion(): void {
+export function checkClaudeVersion(): string | null {
   try {
     const result = spawnSync('claude', ['--version'], { encoding: 'utf-8', timeout: 5000 });
     if (result.error || result.status !== 0) {
-      log.warn('Could not determine Claude Code CLI version. Is it installed?');
-      return;
+      return 'Could not determine Claude Code CLI version. Is it installed?';
     }
     const output = result.stdout.trim();
     const match = output.match(/(\d+\.\d+\.\d+)/);
     if (!match) {
-      log.warn(`Unexpected Claude Code version format: ${output}`);
-      return;
+      return `Unexpected Claude Code version format: ${output}`;
     }
     const installed = match[1];
     if (installed !== CLAUDE_CODE_VERSION) {
-      log.warn(`Claude Code version mismatch: installed ${installed}, tested with ${CLAUDE_CODE_VERSION}`);
+      return `Claude Code version mismatch: installed ${installed}, tested with ${CLAUDE_CODE_VERSION}`;
     }
+    return null;
   } catch {
-    log.warn('Could not check Claude Code CLI version.');
+    return 'Could not check Claude Code CLI version.';
   }
 }
 

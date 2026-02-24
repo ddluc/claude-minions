@@ -10,6 +10,7 @@ export class WebSocketServer {
   private wss: WSServer;
   private clients: Map<string, ClientConnection>;
   private broadcaster: ChatBroadcaster;
+  private startupWarnings: string[] = [];
 
   constructor(server: Server) {
     this.wss = new WSServer({ server, path: '/ws' });
@@ -17,6 +18,13 @@ export class WebSocketServer {
     this.broadcaster = new ChatBroadcaster(this.clients);
 
     this.wss.on('connection', (ws) => this.handleConnection(ws));
+  }
+
+  /**
+   * Register a warning to send to each chat client on connect.
+   */
+  addStartupWarning(warning: string): void {
+    this.startupWarnings.push(warning);
   }
 
   /**
@@ -72,5 +80,13 @@ export class WebSocketServer {
       content: 'Connected to Minions server. Type @role to message agents. Ctrl+C to exit',
       timestamp: new Date().toISOString(),
     }));
+
+    for (const warning of this.startupWarnings) {
+      ws.send(JSON.stringify({
+        type: 'system',
+        content: `⚠ ${warning}`,
+        timestamp: new Date().toISOString(),
+      }));
+    }
   }
 }
