@@ -21,6 +21,8 @@ export const PERSONALITY_TAGS: Record<string, string> = {
 
 export const DEFAULT_PORT = 3000;
 
+export const CLAUDE_CODE_VERSION = '1.0.33';
+
 
 export const DEFAULT_PERMISSIONS = {
   allow: [

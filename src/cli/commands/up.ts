@@ -1,5 +1,6 @@
 import { log } from '../lib/logger.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { checkClaudeVersion } from '../lib/utils.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ChatDaemon } from '../services/ChatDaemon.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
@@ -48,6 +49,7 @@ export class UpCommand {
     const settings = loadSettings(workspaceRoot);
 
     this.messages.header();
+    checkClaudeVersion();
     this.messages.preparingWorkspace();
 
     const workspace = new WorkspaceService(workspaceRoot, settings);
