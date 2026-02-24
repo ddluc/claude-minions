@@ -1,5 +1,6 @@
 import { log } from '../lib/logger.js';
 import { loadSettings, getWorkspaceRoot } from '../lib/config.js';
+import { checkClaudeVersion } from '../lib/utils.js';
 import { WorkspaceService } from '../services/WorkspaceService.js';
 import { ChatDaemon } from '../services/ChatDaemon.js';
 import { ClaudeRunner } from '../services/ClaudeRunner.js';
@@ -48,6 +49,14 @@ export class UpCommand {
     const settings = loadSettings(workspaceRoot);
 
     this.messages.header();
+    const versionCheck = checkClaudeVersion();
+    if (versionCheck) {
+      if (versionCheck.level === 'error') {
+        log.error(versionCheck.message);
+      } else {
+        log.warn(versionCheck.message);
+      }
+    }
     this.messages.preparingWorkspace();
 
     const workspace = new WorkspaceService(workspaceRoot, settings);
@@ -73,6 +82,9 @@ export class UpCommand {
 
     const port = settings.serverPort || DEFAULT_PORT;
     const srv = new MinionsServer();
+    if (versionCheck) {
+      srv.addStartupWarning(versionCheck.level, versionCheck.message);
+    }
     await srv.start(port);
 
     this.messages.ready(enabledRoles, port);

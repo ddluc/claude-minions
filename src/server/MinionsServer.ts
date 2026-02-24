@@ -34,6 +34,13 @@ export class MinionsServer {
   }
 
   /**
+   * Register a warning or error to display to chat clients on connect.
+   */
+  addStartupWarning(level: 'error' | 'warn', message: string): void {
+    this.wss.addStartupWarning(level, message);
+  }
+
+  /**
    * Start listening on the given port.
    */
   start(port: number): Promise<void> {
