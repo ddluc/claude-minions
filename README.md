@@ -32,6 +32,7 @@ Claude Minions coordinates multiple AI agents — each with a defined role — t
 
 - Node.js 20+
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated (`curl -fsSL https://claude.ai/install.sh | bash`, then `claude` to log in)
+- [GitHub CLI (`gh`)](https://cli.github.com/) installed and authenticated — agents use it to create issues, open PRs, and interact with GitHub
 - GitHub personal access token (for agent GitHub operations)
 - GitHub account with SSH access configured (for repository cloning)
 
